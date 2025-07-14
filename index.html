@@ -17,8 +17,45 @@
       color: #fff;
     }
     body {
-      display: block;
-      height: auto;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    aside {
+      width: 220px;
+      background: #202020;
+      display: flex;
+      flex-direction: column;
+      padding-top: 20px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+    }
+    aside img {
+      width: 140px;
+      margin: 0 auto 30px auto;
+    }
+    aside a {
+      color: #aaa;
+      text-decoration: none;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      border-left: 4px solid transparent;
+      transition: all 0.3s;
+    }
+    aside a svg {
+      fill: #aaa;
+      margin-right: 10px;
+    }
+    aside a:hover {
+      background: #383838;
+      color: #fff;
+      border-left: 4px solid #ff0000;
     }
 
     /* Header */
@@ -27,98 +64,59 @@
       background: #202020;
       display: flex;
       align-items: center;
-      padding: 0 10px;
+      justify-content: space-between;
+      padding: 0 20px;
       position: fixed;
-      left: 0;
+      left: 220px;
       right: 0;
       top: 0;
       z-index: 10;
     }
-    header img {
-      height: 36px;
-      margin-right: 10px;
-    }
     header h1 {
       color: #ff0000;
-      font-size: 16px;
+      font-size: 18px;
       margin: 0;
-      flex-grow: 1;
       font-weight: bold;
-    }
-    header .buttons {
-      margin-left: auto;
-      display: flex;
-      gap: 5px;
     }
     header .buttons button {
       background: #ff0000;
       color: #fff;
       border: none;
-      padding: 6px 8px;
+      padding: 8px 12px;
       border-radius: 3px;
       cursor: pointer;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 13px;
     }
     header .buttons button:hover {
       background: #cc0000;
     }
 
-    /* Top Nav (aside converted to horizontal nav) */
-    aside {
-      width: 100%;
-      background: #202020;
-      display: flex;
-      justify-content: space-around;
-      padding: 10px 0;
-      margin-top: 64px;
-      position: fixed;
-      top: 64px;
-      left: 0;
-      right: 0;
-      z-index: 9;
-    }
-    aside a {
-      color: #fff;
-      text-decoration: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-size: 12px;
-    }
-    aside a svg {
-      margin-bottom: 3px;
-      fill: #fff;
-    }
-    aside a:hover {
-      color: #ff0000;
-    }
-
-    /* Main content */
+    /* Main */
     main {
-      margin-top: 128px;
-      padding: 15px;
+      margin-top: 64px;
+      margin-left: 220px;
+      padding: 20px;
+      height: calc(100vh - 64px);
       overflow-y: auto;
     }
+
     .channel-info {
       background: #282828;
       padding: 20px;
       border-radius: 8px;
       margin-bottom: 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       text-align: center;
     }
     .channel-info img {
       border-radius: 50%;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       width: 80px;
       height: 80px;
     }
     .channel-info h2 {
       margin: 5px 0;
-      font-size: 18px;
+      font-size: 20px;
       color: #ff0000;
     }
     .channel-info p {
@@ -127,35 +125,97 @@
       color: #aaa;
     }
 
+    .video-list-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #ff0000;
+    }
+
     .video-item {
       background: #282828;
-      padding: 20px;
+      padding: 15px;
       border-radius: 8px;
       margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    .video-item img {
+    .video-thumb {
+      flex: 0 0 200px;
+    }
+    .video-thumb img {
       width: 100%;
-      max-width: 300px;
       border-radius: 4px;
-      margin-top: 10px;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
+    }
+    .video-details {
+      flex: 1;
+      min-width: 250px;
+    }
+    .video-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 5px;
+      color: #fff;
+    }
+    .video-views {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+    .privacy-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .privacy-public {
+      background: green;
+    }
+    .privacy-unlisted {
+      background: #ffa500;
+    }
+    .privacy-private {
+      background: #cc0000;
+    }
+    .form-group {
+      margin-bottom: 10px;
     }
     label {
       display: block;
-      margin-top: 10px;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
       font-weight: bold;
       color: #ff0000;
+      font-size: 13px;
     }
-    select, input[type="text"] {
+    select {
       width: 100%;
-      padding: 10px;
+      padding: 8px;
       border-radius: 4px;
       border: 1px solid #555;
       background: #121212;
       color: #fff;
+      font-size: 14px;
+    }
+    .multi-select {
+      height: 80px;
+    }
+    button.save-btn {
+      background: #ff0000;
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    button.save-btn:hover {
+      background: #cc0000;
     }
     .status {
       margin-top: 10px;
@@ -166,29 +226,30 @@
   </style>
 </head>
 <body>
-  <header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Studio_logo.svg" alt="Studio Logo" />
-    <h1>YouTube Studio Rights Panel</h1>
-    <div class="buttons">
-      <button id="loginBtn">Sign in with Google</button>
-      <button id="logoutBtn" style="display:none;">Logout</button>
-    </div>
-  </header>
 
   <aside>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Studio_logo.svg" alt="YouTube Studio Logo" />
     <a href="#">
-      <svg height="24" width="24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <svg height="20" width="20"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       Dashboard
     </a>
     <a href="#">
-      <svg height="24" width="24"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
-      Content
+      <svg height="20" width="20"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+      Videos
     </a>
     <a href="#">
-      <svg height="24" width="24"><path d="M12 4a8 8 0 100 16 8 8 0 000-16z"/></svg>
+      <svg height="20" width="20"><path d="M12 4a8 8 0 100 16 8 8 0 000-16z"/></svg>
       Analytics
     </a>
   </aside>
+
+  <header>
+    <h1>YouTube Studio</h1>
+    <div class="buttons">
+      <button id="loginBtn">Sign in</button>
+      <button id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+  </header>
 
   <main>
     <div id="channel-info"></div>
@@ -255,24 +316,37 @@
       })
       .then(res => res.json())
       .then(data => {
-        let html = "<h2>Your Uploaded Videos</h2>";
+        let html = `<div class="video-list-title">Your Uploaded Videos</div>`;
         data.items.forEach(item => {
           const video = item.snippet;
           const videoId = video.resourceId.videoId;
+          const privacy = "public"; // default (you may load real privacy via another API)
           html += `
             <div class="video-item">
-              <strong>${video.title}</strong><br/>
-              <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
-              <label>Allowed Countries:</label>
-              <select multiple id="countrySelect-${videoId}">
-                ${countryList.map(c => `<option value="${c}">${c}</option>`).join("")}
-              </select>
-              <label>Privacy Status:</label>
-              <select id="privacySelect-${videoId}">
-                ${privacyStatusList.map(status => `<option value="${status}">${status}</option>`).join("")}
-              </select>
-              <button onclick="saveVideoSettings('${videoId}')">Save Settings</button>
-              <div id="output-${videoId}" class="status"></div>
+              <div class="video-thumb">
+                <img src="${video.thumbnails?.medium?.url || video.thumbnails?.default?.url || ''}" alt="${video.title}" />
+              </div>
+              <div class="video-details">
+                <div class="video-title">${video.title}</div>
+                <div class="video-views">${video.publishedAt.substr(0,10)} • 12,345 views</div>
+                <div class="privacy-badge privacy-${privacy}">
+                  ${privacy.charAt(0).toUpperCase() + privacy.slice(1)}
+                </div>
+                <div class="form-group">
+                  <label>Allowed Countries</label>
+                  <select multiple id="countrySelect-${videoId}" class="multi-select">
+                    ${countryList.map(c => `<option value="${c}">${c}</option>`).join("")}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Privacy Status</label>
+                  <select id="privacySelect-${videoId}">
+                    ${privacyStatusList.map(status => `<option value="${status}">${status}</option>`).join("")}
+                  </select>
+                </div>
+                <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
+                <div id="output-${videoId}" class="status"></div>
+              </div>
             </div>
           `;
         });
