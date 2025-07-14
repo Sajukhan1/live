@@ -12,7 +12,7 @@
       padding: 0;
     }
     main {
-      max-width: 600px;
+      max-width: 700px;
       margin: 50px auto;
       background: #fff;
       padding: 30px;
@@ -20,33 +20,34 @@
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
     button {
-      padding: 12px 24px;
-      font-size: 18px;
+      padding: 10px 20px;
+      font-size: 16px;
       border: none;
       border-radius: 6px;
       background: #4285f4;
       color: #fff;
       cursor: pointer;
-      margin: 15px 0;
-      box-shadow: 0 4px 6px rgba(66,133,244,0.4);
-      transition: background-color 0.3s ease;
+      margin-top: 10px;
     }
     button:hover {
       background: #357ae8;
     }
-    #video-list {
-      margin-top: 25px;
-    }
     .video-item {
-      margin-bottom: 20px;
-      padding: 15px;
+      margin-bottom: 30px;
+      padding: 20px;
       border-radius: 8px;
       background: #fafafa;
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
-    .video-item strong {
-      font-size: 16px;
-      color: #222;
+    .video-item img {
+      margin-top: 10px;
+      max-width: 100%;
+    }
+    select {
+      margin-top: 10px;
+      width: 100%;
+      padding: 8px;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -62,11 +63,12 @@
   window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
   let accessToken = null;
 
+  const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
+
   document.getElementById("loginBtn").addEventListener("click", () => {
-    const CLIENT_ID = window.CLIENT_ID;
-    const redirectUri = "https://saju-live.vercel.app/"; // ✅ Slash সহ
+    const redirectUri = "https://saju-live.vercel.app/";
     const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly");
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true&prompt=consent`;
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${window.CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true&prompt=consent`;
     window.location.href = url;
   });
 
@@ -84,44 +86,66 @@
     })
     .then(res => res.json())
     .then(data => {
-      if (!data.items || data.items.length === 0) {
-        alert("No channel found for this account.");
-        return;
-      }
-
       const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
-
-      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10`, {
+      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=5`, {
         headers: { Authorization: "Bearer " + accessToken }
       })
       .then(res => res.json())
       .then(data => {
-        if (!data.items || data.items.length === 0) {
-          document.getElementById("video-list").innerHTML = "<p>No videos found in your channel.</p>";
-          return;
-        }
-
         let html = "<h3>Your Uploaded Videos</h3>";
-        data.items.forEach(item => {
+        data.items.forEach((item, index) => {
           const video = item.snippet;
+          const videoId = item.snippet.resourceId.videoId;
           html += `
             <div class="video-item">
               <strong>${video.title}</strong><br />
-              <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
+              <img src="${video.thumbnails.default.url}" alt="${video.title}" />
+              <br />
+              <label>Select Countries to Allow:</label>
+              <select multiple id="countrySelect-${videoId}">
+                ${countryList.map(code => `<option value="${code}">${code}</option>`).join("")}
+              </select>
+              <button onclick="applyRegionRestriction('${videoId}')">Save Region Settings</button>
+              <div id="output-${videoId}" style="margin-top:10px;color:green;"></div>
             </div>
           `;
         });
         document.getElementById("video-list").innerHTML = html;
-      })
-      .catch(err => {
-        console.error("Error fetching videos:", err);
-        alert("Failed to fetch videos.");
       });
-    })
-    .catch(err => {
-      console.error("Error fetching channel:", err);
-      alert("Failed to fetch channel info.");
     });
+  }
+
+  function applyRegionRestriction(videoId) {
+    const select = document.getElementById(`countrySelect-${videoId}`);
+    const selectedCountries = Array.from(select.selectedOptions).map(opt => opt.value);
+    const allCountries = countryList;
+    const blocked = allCountries.filter(code => !selectedCountries.includes(code));
+
+    document.getElementById(`output-${videoId}`).innerText = `✅ Allowed: ${selectedCountries.join(", ")} | ❌ Blocked: ${blocked.join(", ")}`;
+
+    // এখানে PUT API কল করতে হবে YouTube videos.update দিয়ে
+    // Future scope:
+    /*
+    fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
+      method: "PUT",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id: videoId,
+        contentDetails: {
+          regionRestriction: {
+            allowed: selectedCountries
+          }
+        }
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Updated successfully:", data);
+    });
+    */
   }
 
   window.onload = () => {
@@ -139,9 +163,6 @@
       document.getElementById("loginBtn").style.display = "none";
       document.getElementById("logoutBtn").style.display = "inline-block";
       fetchVideos();
-    } else {
-      document.getElementById("loginBtn").style.display = "inline-block";
-      document.getElementById("logoutBtn").style.display = "none";
     }
   };
 </script>
