@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YouTube Studio Rights Panel</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body, html {
       margin: 0;
       padding: 0;
@@ -17,7 +15,6 @@
       height: 100%;
       overflow-x: hidden;
     }
-
     header {
       display: flex;
       align-items: center;
@@ -31,24 +28,18 @@
       height: 56px;
       z-index: 10;
     }
-
     header .left {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
-    header img {
-      height: 28px;
-    }
-
+    header img { height: 28px; }
     header h1 {
       font-size: 16px;
       color: #ff0000;
       font-weight: bold;
       margin: 0;
     }
-
     header .buttons button {
       background: #ff0000;
       color: #fff;
@@ -59,16 +50,13 @@
       font-size: 13px;
       cursor: pointer;
     }
-
     header .buttons button:hover {
       background: #cc0000;
     }
-
     main {
       margin-top: 64px;
       padding: 16px;
     }
-
     .channel-info {
       background: #282828;
       border-radius: 8px;
@@ -76,61 +64,51 @@
       text-align: center;
       margin-bottom: 24px;
     }
-
     .channel-info img {
       border-radius: 50%;
       width: 64px;
       height: 64px;
       margin-bottom: 8px;
     }
-
     .channel-info h2 {
       margin: 0;
       font-size: 18px;
       color: #ff0000;
     }
-
     .channel-info p {
       margin: 4px 0;
       font-size: 14px;
       color: #aaa;
     }
-
     .video-list-title {
       font-size: 16px;
       color: #ff0000;
       font-weight: bold;
       margin-bottom: 12px;
     }
-
     .video-item {
       background: #282828;
       border-radius: 8px;
       margin-bottom: 20px;
       overflow: hidden;
     }
-
     .video-thumb img {
       width: 100%;
       display: block;
     }
-
     .video-details {
       padding: 12px;
     }
-
     .video-title {
       font-size: 16px;
       font-weight: bold;
       margin-bottom: 6px;
     }
-
     .video-views {
       font-size: 14px;
       color: #aaa;
       margin-bottom: 8px;
     }
-
     .privacy-badge {
       display: inline-block;
       padding: 3px 8px;
@@ -138,17 +116,9 @@
       font-size: 12px;
       margin-bottom: 10px;
     }
-
-    .privacy-public {
-      background: green;
-    }
-    .privacy-unlisted {
-      background: orange;
-    }
-    .privacy-private {
-      background: #cc0000;
-    }
-
+    .privacy-public { background: green; }
+    .privacy-unlisted { background: orange; }
+    .privacy-private { background: #cc0000; }
     label {
       display: block;
       font-size: 13px;
@@ -156,7 +126,6 @@
       margin-bottom: 4px;
       font-weight: bold;
     }
-
     select {
       width: 100%;
       padding: 8px;
@@ -167,11 +136,7 @@
       margin-bottom: 10px;
       font-size: 14px;
     }
-
-    .multi-select {
-      height: 80px;
-    }
-
+    .multi-select { height: 80px; }
     .save-btn {
       background: #ff0000;
       color: #fff;
@@ -182,11 +147,9 @@
       font-weight: bold;
       width: 100%;
     }
-
     .save-btn:hover {
       background: #cc0000;
     }
-
     .status {
       margin-top: 8px;
       color: #0f0;
@@ -273,37 +236,54 @@
       })
       .then(res => res.json())
       .then(data => {
-        let html = "";
-        data.items.forEach(item => {
-          const video = item.snippet;
-          const videoId = video.resourceId.videoId;
-          const privacy = "public"; // placeholder, real privacy should be fetched separately
-          html += `
-            <div class="video-item">
-              <div class="video-thumb">
-                <img src="${video.thumbnails?.medium?.url || video.thumbnails?.default?.url || ''}" alt="${video.title}" />
-              </div>
-              <div class="video-details">
-                <div class="video-title">${video.title}</div>
-                <div class="video-views">${video.publishedAt.substr(0,10)} • 12,345 views</div>
-                <div class="privacy-badge privacy-${privacy}">
-                  ${privacy.charAt(0).toUpperCase() + privacy.slice(1)}
+        const videoIds = data.items.map(item => item.snippet.resourceId.videoId).join(",");
+        if (!videoIds) return;
+
+        fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,status,contentDetails&id=${videoIds}`, {
+          headers: { Authorization: "Bearer " + accessToken }
+        })
+        .then(res => res.json())
+        .then(videoData => {
+          let html = "";
+          videoData.items.forEach(video => {
+            const videoId = video.id;
+            const title = video.snippet.title;
+            const publishedAt = video.snippet.publishedAt.substr(0,10);
+            const views = video.statistics.viewCount || "0";
+            const privacy = video.status.privacyStatus;
+            const regionRestriction = video.contentDetails.regionRestriction || {};
+            const allowedCountries = regionRestriction.allowed || [];
+            html += `
+              <div class="video-item">
+                <div class="video-thumb">
+                  <img src="${video.snippet.thumbnails?.medium?.url || ''}" alt="${title}" />
                 </div>
-                <label>Allowed Countries</label>
-                <select multiple id="countrySelect-${videoId}" class="multi-select">
-                  ${countryList.map(c => `<option value="${c}">${c}</option>`).join("")}
-                </select>
-                <label>Privacy Status</label>
-                <select id="privacySelect-${videoId}">
-                  ${privacyStatusList.map(status => `<option value="${status}">${status}</option>`).join("")}
-                </select>
-                <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
-                <div id="output-${videoId}" class="status"></div>
+                <div class="video-details">
+                  <div class="video-title">${title}</div>
+                  <div class="video-views">${publishedAt} • ${views} views</div>
+                  <div class="privacy-badge privacy-${privacy}">
+                    ${privacy.charAt(0).toUpperCase() + privacy.slice(1)}
+                  </div>
+                  <label>Allowed Countries</label>
+                  <select multiple id="countrySelect-${videoId}" class="multi-select">
+                    ${countryList.map(c => `<option value="${c}" ${allowedCountries.includes(c) ? "selected" : ""}>${c}</option>`).join("")}
+                  </select>
+                  <label>Privacy Status</label>
+                  <select id="privacySelect-${videoId}">
+                    ${privacyStatusList.map(status => `<option value="${status}" ${privacy===status?"selected":""}>${status}</option>`).join("")}
+                  </select>
+                  <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
+                  <div id="output-${videoId}" class="status"></div>
+                </div>
               </div>
-            </div>
-          `;
+            `;
+          });
+          document.getElementById("video-list").innerHTML = html;
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error fetching video details.");
         });
-        document.getElementById("video-list").innerHTML = html;
       })
       .catch(err => {
         console.error(err);
@@ -333,13 +313,8 @@
         },
         body: JSON.stringify({
           id: videoId,
-          snippet: {
-            categoryId: "22",
-            title: "Updated Title"
-          },
-          status: {
-            privacyStatus: privacy
-          },
+          snippet: { categoryId: "22", title: "Updated Title" },
+          status: { privacyStatus: privacy },
           contentDetails: {
             regionRestriction: {
               allowed: selectedCountries,
