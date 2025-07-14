@@ -1,72 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>YouTube Video Region Restriction Checker</title>
-<style>
-  body {
-    background: #121212;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    max-width: 600px;
-    margin: auto;
-  }
-  input, button {
-    padding: 10px;
-    margin: 5px 0;
-    width: 100%;
-    font-size: 16px;
-  }
-  button {
-    background: #ff0000;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #cc0000;
-  }
-  .result {
-    margin-top: 20px;
-    background: #282828;
-    padding: 15px;
-    border-radius: 6px;
-  }
-  .allowed {
-    color: #0f0;
-  }
-  .blocked {
-    color: #f33;
-  }
-</style>
-</head>
-<body>
-
-<h2>YouTube Video Region Restriction Checker</h2>
-
-<div id="authSection">
-  <button id="loginBtn">🔑 Sign in with Google</button>
-  <button id="logoutBtn" style="display:none;">🚪 Logout</button>
-</div>
-
-<input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" />
-<button id="checkBtn">Check Restrictions</button>
-
-<div id="result" class="result" style="display:none;"></div>
-
 <script>
 const CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
 const REDIRECT_URI = "https://saju-live.vercel.app/";
 let accessToken = null;
 
-document.getElementById('loginBtn').addEventListener('click', () => {
+function startOAuth() {
   const scopes = encodeURIComponent(
     "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube"
   );
   const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
   window.location.href = url;
+}
+
+document.getElementById('loginBtn').addEventListener('click', () => {
+  startOAuth();
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -128,7 +74,10 @@ function checkRegionRestrictions(videoId) {
   })
   .catch(err => {
     console.error(err);
-    showResult("Error fetching video details.");
+    showResult("Error fetching video details. Please try logging in again.");
+    localStorage.removeItem("access_token");
+    document.getElementById("loginBtn").style.display = "inline-block";
+    document.getElementById("logoutBtn").style.display = "none";
   });
 }
 
@@ -154,11 +103,8 @@ window.onload = () => {
     document.getElementById("loginBtn").style.display = "none";
     document.getElementById("logoutBtn").style.display = "inline-block";
   } else {
-    document.getElementById("loginBtn").style.display = "inline-block";
-    document.getElementById("logoutBtn").style.display = "none";
+    // 🔥 Auto-login if token not found
+    startOAuth();
   }
 };
 </script>
-
-</body>
-</html>
