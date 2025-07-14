@@ -146,6 +146,12 @@
       font-size: 14px;
       white-space: pre-wrap;
     }
+    .blocked-countries {
+      margin-top: 8px;
+      color: #ff6666;
+      font-weight: bold;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -241,6 +247,8 @@
             const views = video.statistics.viewCount || "0";
             const regionRestriction = video.contentDetails.regionRestriction || {};
             const allowedCountries = regionRestriction.allowed || [];
+            const blockedCountries = countryList.filter(c => !allowedCountries.includes(c));
+
             html += `
               <div class="video-item">
                 <div class="video-thumb">
@@ -249,10 +257,14 @@
                 <div class="video-details">
                   <div class="video-title">${title}</div>
                   <div class="video-views">${publishedAt} • ${views} views</div>
+
                   <label>Allowed Countries</label>
                   <select multiple id="countrySelect-${videoId}" class="multi-select">
-                    ${countryList.map(c => `<option value="${c}" ${allowedCountries.includes(c) ? "selected" : ""}>${c}</option>`).join("")}
+                    ${countryList.map(c => `<option value="${c}" ${allowedCountries.includes(c) ? "selected" : ""}>${c}</option>`).join('')}
                   </select>
+
+                  <div class="blocked-countries">Blocked Countries: ${blockedCountries.join(", ")}</div>
+
                   <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
                   <div id="output-${videoId}" class="status"></div>
                 </div>
@@ -275,15 +287,16 @@
     function saveVideoSettings(videoId) {
       const selectCountries = document.getElementById(`countrySelect-${videoId}`);
       const selectedCountries = Array.from(selectCountries.selectedOptions).map(opt => opt.value);
-      const blocked = countryList.filter(c => !selectedCountries.includes(c));
 
       if (selectedCountries.length === 0) {
         alert("Select at least one allowed country.");
         return;
       }
 
+      const blockedCountries = countryList.filter(c => !selectedCountries.includes(c));
+
       document.getElementById(`output-${videoId}`).innerText =
-        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
+        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blockedCountries.join(", ")}`;
 
       fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
         method: "PUT",
@@ -295,8 +308,7 @@
           id: videoId,
           contentDetails: {
             regionRestriction: {
-              allowed: selectedCountries,
-              blocked: blocked.length > 0 ? blocked : undefined
+              allowed: selectedCountries
             }
           }
         })
