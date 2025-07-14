@@ -33,6 +33,7 @@
     background: #282828;
     padding: 15px;
     border-radius: 6px;
+    white-space: pre-wrap;
   }
   .allowed {
     color: #0f0;
@@ -61,6 +62,7 @@ const CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleuser
 const REDIRECT_URI = "https://saju-live.vercel.app/";
 let accessToken = null;
 
+// Login button click
 document.getElementById('loginBtn').addEventListener('click', () => {
   const scopes = encodeURIComponent(
     "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube"
@@ -69,14 +71,17 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   window.location.href = url;
 });
 
+// Logout button click
 document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem("access_token");
   accessToken = null;
   document.getElementById("loginBtn").style.display = "inline-block";
   document.getElementById("logoutBtn").style.display = "none";
+  document.getElementById("result").style.display = "none";
   alert("Logged out!");
 });
 
+// Check button click
 document.getElementById('checkBtn').addEventListener('click', () => {
   const videoId = document.getElementById('videoIdInput').value.trim();
   if (!videoId) {
@@ -86,6 +91,7 @@ document.getElementById('checkBtn').addEventListener('click', () => {
   checkRegionRestrictions(videoId);
 });
 
+// Check region restriction API call
 function checkRegionRestrictions(videoId) {
   if (!accessToken) {
     alert("Please login first!");
@@ -94,17 +100,15 @@ function checkRegionRestrictions(videoId) {
 
   const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoId}`;
   fetch(url, {
-    headers: {
-      Authorization: "Bearer " + accessToken
-    }
+    headers: { Authorization: "Bearer " + accessToken }
   })
   .then(res => res.json())
   .then(data => {
-    console.log(data);
     if (!data.items || data.items.length === 0) {
-      showResult("❌ No video found with this ID or it is private.");
+      showResult("❌ No video found with this ID or it is private/unlisted (without proper access).");
       return;
     }
+
     const video = data.items[0];
     const title = video.snippet.title;
     const regionRestriction = video.contentDetails.regionRestriction || {};
@@ -112,43 +116,41 @@ function checkRegionRestrictions(videoId) {
     let allowed = regionRestriction.allowed || [];
     let blocked = regionRestriction.blocked || [];
 
-    let html = `<h3>Title: ${title}</h3>`;
+    let html = `Title: ${title}\n\n`;
 
     if (allowed.length > 0) {
-      html += `<p class="allowed"><strong>Allowed Countries:</strong> ${allowed.join(", ")}</p>`;
-      html += `<p class="blocked">All other countries are blocked.</p>`;
+      html += `✅ Allowed Countries: ${allowed.join(", ")}\n❌ All other countries are blocked.`;
     } else if (blocked.length > 0) {
-      html += `<p class="blocked"><strong>Blocked Countries:</strong> ${blocked.join(", ")}</p>`;
-      html += `<p class="allowed">All other countries are allowed.</p>`;
+      html += `❌ Blocked Countries: ${blocked.join(", ")}\n✅ All other countries are allowed.`;
     } else {
-      html += `<p>✅ There is no region restriction on this video.</p>`;
+      html += `✅ There is no region restriction on this video.`;
     }
 
     showResult(html);
   })
   .catch(err => {
     console.error(err);
-    showResult("Error fetching video details.");
+    showResult("Error fetching video details. Make sure the video ID is correct and you have permission to view this video.");
   });
 }
 
-function showResult(html) {
+// Show result on page
+function showResult(text) {
   const resultDiv = document.getElementById('result');
   resultDiv.style.display = 'block';
-  resultDiv.innerHTML = html;
+  resultDiv.textContent = text;
 }
 
+// On page load: check if token is in URL or localStorage
 window.onload = () => {
   const hash = window.location.hash;
   if (hash.includes("access_token")) {
     const params = new URLSearchParams(hash.substring(1));
     accessToken = params.get("access_token");
-    console.log("Got token from URL hash:", accessToken);
     localStorage.setItem("access_token", accessToken);
     window.history.replaceState({}, document.title, window.location.pathname);
   } else {
     accessToken = localStorage.getItem("access_token");
-    console.log("Got token from localStorage:", accessToken);
   }
 
   if (accessToken) {
