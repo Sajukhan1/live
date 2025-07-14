@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YouTube Studio Rights Panel</title>
   <style>
-    /* same CSS as before, no changes needed */
     * { box-sizing: border-box; }
     body, html {
       margin: 0;
@@ -110,16 +109,6 @@
       color: #aaa;
       margin-bottom: 8px;
     }
-    .privacy-badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 3px;
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
-    .privacy-public { background: green; }
-    .privacy-unlisted { background: orange; }
-    .privacy-private { background: #cc0000; }
     label {
       display: block;
       font-size: 13px;
@@ -182,7 +171,6 @@
     let accessToken = null;
 
     const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
-    const privacyStatusList = ["public", "private", "unlisted"];
 
     document.getElementById("loginBtn").addEventListener("click", () => {
       const redirectUri = "https://saju-live.vercel.app/";
@@ -240,7 +228,7 @@
         const videoIds = data.items.map(item => item.snippet.resourceId.videoId).join(",");
         if (!videoIds) return;
 
-        fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,status,contentDetails&id=${videoIds}`, {
+        fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoIds}`, {
           headers: { Authorization: "Bearer " + accessToken }
         })
         .then(res => res.json())
@@ -251,7 +239,6 @@
             const title = video.snippet.title;
             const publishedAt = video.snippet.publishedAt.substr(0,10);
             const views = video.statistics.viewCount || "0";
-            const privacy = video.status.privacyStatus;
             const regionRestriction = video.contentDetails.regionRestriction || {};
             const allowedCountries = regionRestriction.allowed || [];
             html += `
@@ -262,16 +249,9 @@
                 <div class="video-details">
                   <div class="video-title">${title}</div>
                   <div class="video-views">${publishedAt} • ${views} views</div>
-                  <div class="privacy-badge privacy-${privacy}">
-                    ${privacy.charAt(0).toUpperCase() + privacy.slice(1)}
-                  </div>
                   <label>Allowed Countries</label>
                   <select multiple id="countrySelect-${videoId}" class="multi-select">
                     ${countryList.map(c => `<option value="${c}" ${allowedCountries.includes(c) ? "selected" : ""}>${c}</option>`).join("")}
-                  </select>
-                  <label>Privacy Status</label>
-                  <select id="privacySelect-${videoId}">
-                    ${privacyStatusList.map(status => `<option value="${status}" ${privacy===status?"selected":""}>${status}</option>`).join("")}
                   </select>
                   <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
                   <div id="output-${videoId}" class="status"></div>
@@ -296,7 +276,6 @@
       const selectCountries = document.getElementById(`countrySelect-${videoId}`);
       const selectedCountries = Array.from(selectCountries.selectedOptions).map(opt => opt.value);
       const blocked = countryList.filter(c => !selectedCountries.includes(c));
-      const privacy = document.getElementById(`privacySelect-${videoId}`).value;
 
       if (selectedCountries.length === 0) {
         alert("Select at least one allowed country.");
@@ -304,9 +283,9 @@
       }
 
       document.getElementById(`output-${videoId}`).innerText =
-        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}\nPrivacy: ${privacy}`;
+        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
 
-      fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status", {
+      fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
         method: "PUT",
         headers: {
           Authorization: "Bearer " + accessToken,
@@ -314,13 +293,6 @@
         },
         body: JSON.stringify({
           id: videoId,
-          snippet: {
-            title: null,
-            categoryId: "22"
-          },
-          status: {
-            privacyStatus: privacy
-          },
           contentDetails: {
             regionRestriction: {
               allowed: selectedCountries,
@@ -334,7 +306,7 @@
         if (data.error) {
           alert("Error updating video: " + data.error.message);
         } else {
-          alert("✅ Video settings updated successfully!");
+          alert("✅ Video allowed countries updated successfully!");
         }
       })
       .catch(err => {
