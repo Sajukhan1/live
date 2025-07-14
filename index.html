@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YouTube Studio Rights Panel</title>
   <style>
+    /* same CSS as before, no changes needed */
     * { box-sizing: border-box; }
     body, html {
       margin: 0;
@@ -313,8 +314,13 @@
         },
         body: JSON.stringify({
           id: videoId,
-          snippet: { categoryId: "22", title: "Updated Title" },
-          status: { privacyStatus: privacy },
+          snippet: {
+            title: null,
+            categoryId: "22"
+          },
+          status: {
+            privacyStatus: privacy
+          },
           contentDetails: {
             regionRestriction: {
               allowed: selectedCountries,
