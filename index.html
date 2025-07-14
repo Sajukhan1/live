@@ -67,8 +67,10 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     const redirectUri = "https://saju-live.vercel.app/";
-    const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly");
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${window.CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true&prompt=consent`;
+    const scopes = encodeURIComponent(
+      "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl"
+    );
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${window.CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
     window.location.href = url;
   });
 
@@ -81,25 +83,34 @@
   });
 
   function fetchVideos() {
+    console.log("Fetching channel details...");
     fetch("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true", {
       headers: { Authorization: "Bearer " + accessToken }
     })
     .then(res => res.json())
     .then(data => {
+      console.log("Channel data", data);
+      if (!data.items || data.items.length === 0) {
+        alert("No channel found for this account.");
+        return;
+      }
+
       const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
+
       fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=5`, {
         headers: { Authorization: "Bearer " + accessToken }
       })
       .then(res => res.json())
       .then(data => {
+        console.log("Playlist items", data);
         let html = "<h3>Your Uploaded Videos</h3>";
         data.items.forEach((item, index) => {
           const video = item.snippet;
-          const videoId = item.snippet.resourceId.videoId;
+          const videoId = video.resourceId.videoId;
           html += `
             <div class="video-item">
               <strong>${video.title}</strong><br />
-              <img src="${video.thumbnails.default.url}" alt="${video.title}" />
+              <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
               <br />
               <label>Select Countries to Allow:</label>
               <select multiple id="countrySelect-${videoId}">
@@ -111,20 +122,26 @@
           `;
         });
         document.getElementById("video-list").innerHTML = html;
+      })
+      .catch(err => {
+        console.error("Error fetching playlist items:", err);
+        alert("Error fetching videos.");
       });
+    })
+    .catch(err => {
+      console.error("Error fetching channel details:", err);
+      alert("Failed to fetch channel info.");
     });
   }
 
   function applyRegionRestriction(videoId) {
     const select = document.getElementById(`countrySelect-${videoId}`);
     const selectedCountries = Array.from(select.selectedOptions).map(opt => opt.value);
-    const allCountries = countryList;
-    const blocked = allCountries.filter(code => !selectedCountries.includes(code));
+    const blocked = countryList.filter(c => !selectedCountries.includes(c));
+    document.getElementById(`output-${videoId}`).innerText = 
+      `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
 
-    document.getElementById(`output-${videoId}`).innerText = `✅ Allowed: ${selectedCountries.join(", ")} | ❌ Blocked: ${blocked.join(", ")}`;
-
-    // এখানে PUT API কল করতে হবে YouTube videos.update দিয়ে
-    // Future scope:
+    // Future API update call placeholder
     /*
     fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
       method: "PUT",
@@ -143,7 +160,7 @@
     })
     .then(res => res.json())
     .then(data => {
-      console.log("Updated successfully:", data);
+      console.log("Video region restriction updated:", data);
     });
     */
   }
