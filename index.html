@@ -3,200 +3,218 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Login with Google & YouTube Videos</title>
+  <title>YouTube Rights Management Panel</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f2f5;
       margin: 0;
-      padding: 0;
+      font-family: Roboto, sans-serif;
+      background: #181818;
+      color: #ffffff;
+    }
+    header {
+      background: #202020;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      color: #ff0000;
+      margin: 0;
+      font-size: 24px;
     }
     main {
-      max-width: 700px;
-      margin: 50px auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 20px;
     }
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      background: #4285f4;
+      background: #ff0000;
       color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 3px;
       cursor: pointer;
-      margin-top: 10px;
+      font-weight: bold;
+      transition: background 0.3s;
     }
     button:hover {
-      background: #357ae8;
+      background: #cc0000;
     }
     .video-item {
-      margin-bottom: 30px;
+      background: #282828;
       padding: 20px;
       border-radius: 8px;
-      background: #fafafa;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
     .video-item img {
+      max-width: 200px;
+      border-radius: 4px;
       margin-top: 10px;
-      max-width: 100%;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #ff0000;
     }
     select {
-      margin-top: 10px;
       width: 100%;
-      padding: 8px;
-      border-radius: 5px;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #121212;
+      color: #fff;
+    }
+    .status {
+      margin-top: 10px;
+      color: #0f0;
+      font-size: 14px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
-<main>
-  <h2>Login with Google</h2>
-  <button id="loginBtn">Sign in with Google</button>
-  <button id="logoutBtn" style="display:none;">Logout</button>
-  <div id="video-list"></div>
-</main>
+  <header>
+    <h1>YouTube Rights Manager</h1>
+    <div>
+      <button id="loginBtn">Sign in with Google</button>
+      <button id="logoutBtn" style="display:none;">Logout</button>
+    </div>
+  </header>
 
-<script>
-  window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
-  let accessToken = null;
+  <main>
+    <div id="video-list"></div>
+  </main>
 
-  const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
+  <script>
+    window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
+    let accessToken = null;
 
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    const redirectUri = "https://saju-live.vercel.app/";
-    const scopes = encodeURIComponent(
-      "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl"
-    );
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${window.CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
-    window.location.href = url;
-  });
+    const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
 
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    accessToken = null;
-    localStorage.removeItem("access_token");
-    document.getElementById("video-list").innerHTML = "";
-    document.getElementById("loginBtn").style.display = "inline-block";
-    document.getElementById("logoutBtn").style.display = "none";
-  });
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const redirectUri = "https://saju-live.vercel.app/";
+      const scopes = encodeURIComponent(
+        "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl"
+      );
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${window.CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
+      window.location.href = url;
+    });
 
-  function fetchVideos() {
-    console.log("Fetching channel details...");
-    fetch("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true", {
-      headers: { Authorization: "Bearer " + accessToken }
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Channel data", data);
-      if (!data.items || data.items.length === 0) {
-        alert("No channel found for this account.");
-        return;
-      }
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      accessToken = null;
+      localStorage.removeItem("access_token");
+      document.getElementById("video-list").innerHTML = "";
+      document.getElementById("loginBtn").style.display = "inline-block";
+      document.getElementById("logoutBtn").style.display = "none";
+    });
 
-      const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
-
-      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=5`, {
+    function fetchVideos() {
+      fetch("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true", {
         headers: { Authorization: "Bearer " + accessToken }
       })
       .then(res => res.json())
       .then(data => {
-        console.log("Playlist items", data);
-        let html = "<h3>Your Uploaded Videos</h3>";
-        data.items.forEach((item, index) => {
-          const video = item.snippet;
-          const videoId = video.resourceId.videoId;
-          html += `
-            <div class="video-item">
-              <strong>${video.title}</strong><br />
-              <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
-              <br />
-              <label>Select Countries to Allow:</label>
-              <select multiple id="countrySelect-${videoId}">
-                ${countryList.map(code => `<option value="${code}">${code}</option>`).join("")}
-              </select>
-              <button onclick="applyRegionRestriction('${videoId}')">Save Region Settings</button>
-              <div id="output-${videoId}" style="margin-top:10px;color:green;"></div>
-            </div>
-          `;
+        if (!data.items || data.items.length === 0) {
+          alert("No channel found for this account.");
+          return;
+        }
+
+        const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
+
+        fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=5`, {
+          headers: { Authorization: "Bearer " + accessToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+          let html = "<h2>Your Uploaded Videos</h2>";
+          data.items.forEach(item => {
+            const video = item.snippet;
+            const videoId = video.resourceId.videoId;
+            html += `
+              <div class="video-item">
+                <strong>${video.title}</strong><br/>
+                <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
+                <label>Select Allowed Countries:</label>
+                <select multiple id="countrySelect-${videoId}">
+                  ${countryList.map(c => `<option value="${c}">${c}</option>`).join("")}
+                </select>
+                <button onclick="applyRegionRestriction('${videoId}')">Save Region Settings</button>
+                <div id="output-${videoId}" class="status"></div>
+              </div>
+            `;
+          });
+          document.getElementById("video-list").innerHTML = html;
         });
-        document.getElementById("video-list").innerHTML = html;
-      })
-      .catch(err => {
-        console.error("Error fetching playlist items:", err);
-        alert("Error fetching videos.");
       });
-    })
-    .catch(err => {
-      console.error("Error fetching channel details:", err);
-      alert("Failed to fetch channel info.");
-    });
-  }
-
-  function applyRegionRestriction(videoId) {
-    const select = document.getElementById(`countrySelect-${videoId}`);
-    const selectedCountries = Array.from(select.selectedOptions).map(opt => opt.value);
-    const blocked = countryList.filter(c => !selectedCountries.includes(c));
-    
-    document.getElementById(`output-${videoId}`).innerText = 
-      `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
-
-    if (selectedCountries.length === 0) {
-      alert("Please select at least one country to allow.");
-      return;
     }
 
-    fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
-      method: "PUT",
-      headers: {
-        Authorization: "Bearer " + accessToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id: videoId,
-        contentDetails: {
-          regionRestriction: {
-            allowed: selectedCountries
+    function applyRegionRestriction(videoId) {
+      const select = document.getElementById(`countrySelect-${videoId}`);
+      const selectedCountries = Array.from(select.selectedOptions).map(opt => opt.value);
+      const blocked = countryList.filter(c => !selectedCountries.includes(c));
+
+      if (selectedCountries.length === 0) {
+        alert("Please select at least one country to allow.");
+        return;
+      }
+
+      document.getElementById(`output-${videoId}`).innerText = 
+        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
+
+      // Call YouTube API to update region restriction
+      fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer " + accessToken,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: videoId,
+          contentDetails: {
+            regionRestriction: {
+              allowed: selectedCountries,
+              blocked: blocked.length > 0 ? blocked : undefined
+            }
           }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert("Error updating region restriction: " + data.error.message);
+        } else {
+          alert("✅ Region restriction updated successfully!");
         }
       })
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Region restriction update response:", data);
-      if (data.error) {
-        alert("Error updating region restriction: " + data.error.message);
+      .catch(err => {
+        console.error(err);
+        alert("Failed to update region restriction.");
+      });
+    }
+
+    window.onload = () => {
+      const hash = window.location.hash;
+      if (hash.includes("access_token")) {
+        const params = new URLSearchParams(hash.substring(1));
+        accessToken = params.get("access_token");
+        localStorage.setItem("access_token", accessToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        alert("✅ Region restriction updated successfully!");
+        accessToken = localStorage.getItem("access_token");
       }
-    })
-    .catch(err => {
-      console.error("Error updating region restriction:", err);
-      alert("Failed to update region restriction.");
-    });
-  }
 
-  window.onload = () => {
-    const hash = window.location.hash;
-    if (hash.includes("access_token")) {
-      const params = new URLSearchParams(hash.substring(1));
-      accessToken = params.get("access_token");
-      localStorage.setItem("access_token", accessToken);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      accessToken = localStorage.getItem("access_token");
-    }
-
-    if (accessToken) {
-      document.getElementById("loginBtn").style.display = "none";
-      document.getElementById("logoutBtn").style.display = "inline-block";
-      fetchVideos();
-    } else {
-      document.getElementById("loginBtn").style.display = "inline-block";
-      document.getElementById("logoutBtn").style.display = "none";
-    }
-  };
-</script>
+      if (accessToken) {
+        document.getElementById("loginBtn").style.display = "none";
+        document.getElementById("logoutBtn").style.display = "inline-block";
+        fetchVideos();
+      } else {
+        document.getElementById("loginBtn").style.display = "inline-block";
+        document.getElementById("logoutBtn").style.display = "none";
+      }
+    };
+  </script>
 </body>
 </html>
