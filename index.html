@@ -1,54 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Login with Google & YouTube Videos</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f0f2f5;
-    margin: 0;
-    padding: 0;
-  }
-  main {
-    max-width: 600px;
-    margin: 50px auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
-  }
-  button {
-    padding: 12px 24px;
-    font-size: 18px;
-    border: none;
-    border-radius: 6px;
-    background: #4285f4;
-    color: #fff;
-    cursor: pointer;
-    margin: 15px 0;
-    box-shadow: 0 4px 6px rgba(66,133,244,0.4);
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background: #357ae8;
-  }
-  #video-list {
-    margin-top: 25px;
-  }
-  .video-item {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 8px;
-    background: #fafafa;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  }
-  .video-item strong {
-    font-size: 16px;
-    color: #222;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login with Google & YouTube Videos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+    }
+    main {
+      max-width: 600px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 6px;
+      background: #4285f4;
+      color: #fff;
+      cursor: pointer;
+      margin: 15px 0;
+      box-shadow: 0 4px 6px rgba(66,133,244,0.4);
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background: #357ae8;
+    }
+    #video-list {
+      margin-top: 25px;
+    }
+    .video-item {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #fafafa;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .video-item strong {
+      font-size: 16px;
+      color: #222;
+    }
+  </style>
 </head>
 <body>
 <main>
@@ -57,16 +57,16 @@
   <button id="logoutBtn" style="display:none;">Logout</button>
   <div id="video-list"></div>
 </main>
+
 <script>
   window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
   let accessToken = null;
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     const CLIENT_ID = window.CLIENT_ID;
-    const redirectUri = "https://saju-live.vercel.app/";
+    const redirectUri = "https://saju-live.vercel.app/"; // ✅ Slash সহ
     const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly");
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true&prompt=consent`;
-    console.log("Redirecting to Google Auth:", url);
     window.location.href = url;
   });
 
@@ -79,69 +79,49 @@
   });
 
   function fetchVideos() {
-    console.log("Fetching channel details with token:", accessToken);
-
     fetch("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true", {
       headers: { Authorization: "Bearer " + accessToken }
     })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.items || data.items.length === 0) {
+        alert("No channel found for this account.");
+        return;
+      }
+
+      const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
+
+      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10`, {
+        headers: { Authorization: "Bearer " + accessToken }
+      })
       .then(res => res.json())
       .then(data => {
-        console.log("Channel API Response:", data);
-
-        if (data.error) {
-          alert("Error fetching channel details: " + data.error.message);
-          return;
-        }
-
         if (!data.items || data.items.length === 0) {
-          alert("No channel found for this account.");
+          document.getElementById("video-list").innerHTML = "<p>No videos found in your channel.</p>";
           return;
         }
 
-        const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
-        console.log("Uploads playlist ID:", uploadsPlaylistId);
-
-        const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10`;
-
-        fetch(playlistUrl, {
-          headers: { Authorization: "Bearer " + accessToken }
-        })
-          .then(res => res.json())
-          .then(data => {
-            console.log("Videos API Response:", data);
-
-            if (data.error) {
-              alert("Error fetching videos: " + data.error.message);
-              return;
-            }
-
-            if (!data.items || data.items.length === 0) {
-              document.getElementById("video-list").innerHTML = "<p>No videos found in your channel.</p>";
-              return;
-            }
-
-            let html = "<h3>Your Uploaded Videos</h3>";
-            data.items.forEach(item => {
-              const video = item.snippet;
-              html += `
-                <div class="video-item">
-                  <strong>${video.title}</strong><br />
-                  <img src="${video.thumbnails.default.url}" alt="${video.title}" /><br/>
-                  <small>Published: ${video.publishedAt}</small>
-                </div>
-              `;
-            });
-            document.getElementById("video-list").innerHTML = html;
-          })
-          .catch(err => {
-            console.error("Error fetching videos:", err);
-            alert("Failed to fetch videos. See console for details.");
-          });
+        let html = "<h3>Your Uploaded Videos</h3>";
+        data.items.forEach(item => {
+          const video = item.snippet;
+          html += `
+            <div class="video-item">
+              <strong>${video.title}</strong><br />
+              <img src="${video.thumbnails?.default?.url || ''}" alt="${video.title}" />
+            </div>
+          `;
+        });
+        document.getElementById("video-list").innerHTML = html;
       })
       .catch(err => {
-        console.error("Error fetching channel:", err);
-        alert("Failed to fetch channel info. See console for details.");
+        console.error("Error fetching videos:", err);
+        alert("Failed to fetch videos.");
       });
+    })
+    .catch(err => {
+      console.error("Error fetching channel:", err);
+      alert("Failed to fetch channel info.");
+    });
   }
 
   window.onload = () => {
@@ -149,12 +129,10 @@
     if (hash.includes("access_token")) {
       const params = new URLSearchParams(hash.substring(1));
       accessToken = params.get("access_token");
-      console.log("Access token from URL hash:", accessToken);
       localStorage.setItem("access_token", accessToken);
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       accessToken = localStorage.getItem("access_token");
-      console.log("Access token from localStorage:", accessToken);
     }
 
     if (accessToken) {
