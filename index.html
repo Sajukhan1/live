@@ -63,7 +63,7 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     const CLIENT_ID = window.CLIENT_ID;
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = "https://saju-live.vercel.app/";
     const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly");
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}&include_granted_scopes=true&prompt=consent`;
     window.location.href = url;
