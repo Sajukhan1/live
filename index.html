@@ -138,11 +138,15 @@
     const select = document.getElementById(`countrySelect-${videoId}`);
     const selectedCountries = Array.from(select.selectedOptions).map(opt => opt.value);
     const blocked = countryList.filter(c => !selectedCountries.includes(c));
+    
     document.getElementById(`output-${videoId}`).innerText = 
       `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blocked.join(", ")}`;
 
-    // Future API update call placeholder
-    /*
+    if (selectedCountries.length === 0) {
+      alert("Please select at least one country to allow.");
+      return;
+    }
+
     fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
       method: "PUT",
       headers: {
@@ -160,9 +164,17 @@
     })
     .then(res => res.json())
     .then(data => {
-      console.log("Video region restriction updated:", data);
+      console.log("Region restriction update response:", data);
+      if (data.error) {
+        alert("Error updating region restriction: " + data.error.message);
+      } else {
+        alert("✅ Region restriction updated successfully!");
+      }
+    })
+    .catch(err => {
+      console.error("Error updating region restriction:", err);
+      alert("Failed to update region restriction.");
     });
-    */
   }
 
   window.onload = () => {
@@ -180,6 +192,9 @@
       document.getElementById("loginBtn").style.display = "none";
       document.getElementById("logoutBtn").style.display = "inline-block";
       fetchVideos();
+    } else {
+      document.getElementById("loginBtn").style.display = "inline-block";
+      document.getElementById("logoutBtn").style.display = "none";
     }
   };
 </script>
