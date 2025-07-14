@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>YouTube Studio Rights Panel</title>
   <style>
     * { box-sizing: border-box; }
     body, html {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: Roboto, sans-serif;
       background: #181818;
       color: #fff;
@@ -22,9 +21,7 @@
       background: #202020;
       padding: 10px 16px;
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 56px;
       z-index: 10;
     }
@@ -66,8 +63,7 @@
     }
     .channel-info img {
       border-radius: 50%;
-      width: 64px;
-      height: 64px;
+      width: 64px; height: 64px;
       margin-bottom: 8px;
     }
     .channel-info h2 {
@@ -176,6 +172,7 @@
     window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
     let accessToken = null;
 
+    // সমস্ত দেশগুলো তালিকা
     const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
 
     document.getElementById("loginBtn").addEventListener("click", () => {
@@ -245,8 +242,8 @@
             const title = video.snippet.title;
             const publishedAt = video.snippet.publishedAt.substr(0,10);
             const views = video.statistics.viewCount || "0";
-            const regionRestriction = video.contentDetails.regionRestriction || {};
-            const allowedCountries = regionRestriction.allowed || [];
+            // Allowed শুধু BD, blocked = বাকী সব
+            const allowedCountries = ["BD"];
             const blockedCountries = countryList.filter(c => !allowedCountries.includes(c));
 
             html += `
