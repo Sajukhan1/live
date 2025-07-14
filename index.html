@@ -84,61 +84,64 @@
     fetch("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&mine=true", {
       headers: { Authorization: "Bearer " + accessToken }
     })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Channel API Response:", data);
-
-      if (data.error) {
-        alert("Error fetching channel details: " + data.error.message);
-        return;
-      }
-
-      if (!data.items || data.items.length === 0) {
-        alert("No channel found for this account.");
-        return;
-      }
-
-      const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
-      console.log("Uploads playlist ID:", uploadsPlaylistId);
-
-      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10`, {
-        headers: { Authorization: "Bearer " + accessToken }
-      })
       .then(res => res.json())
       .then(data => {
-        console.log("Videos API Response:", data);
+        console.log("Channel API Response:", data);
 
         if (data.error) {
-          alert("Error fetching videos: " + data.error.message);
+          alert("Error fetching channel details: " + data.error.message);
           return;
         }
 
         if (!data.items || data.items.length === 0) {
-          document.getElementById("video-list").innerHTML = "<p>No videos found in your channel.</p>";
+          alert("No channel found for this account.");
           return;
         }
 
-        let html = "<h3>Your Uploaded Videos</h3>";
-        data.items.forEach(item => {
-          const video = item.snippet;
-          html += `
-            <div class="video-item">
-              <strong>${video.title}</strong><br />
-              <img src="${video.thumbnails.default.url}" alt="${video.title}" />
-            </div>
-          `;
-        });
-        document.getElementById("video-list").innerHTML = html;
+        const uploadsPlaylistId = data.items[0].contentDetails.relatedPlaylists.uploads;
+        console.log("Uploads playlist ID:", uploadsPlaylistId);
+
+        const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10`;
+
+        fetch(playlistUrl, {
+          headers: { Authorization: "Bearer " + accessToken }
+        })
+          .then(res => res.json())
+          .then(data => {
+            console.log("Videos API Response:", data);
+
+            if (data.error) {
+              alert("Error fetching videos: " + data.error.message);
+              return;
+            }
+
+            if (!data.items || data.items.length === 0) {
+              document.getElementById("video-list").innerHTML = "<p>No videos found in your channel.</p>";
+              return;
+            }
+
+            let html = "<h3>Your Uploaded Videos</h3>";
+            data.items.forEach(item => {
+              const video = item.snippet;
+              html += `
+                <div class="video-item">
+                  <strong>${video.title}</strong><br />
+                  <img src="${video.thumbnails.default.url}" alt="${video.title}" /><br/>
+                  <small>Published: ${video.publishedAt}</small>
+                </div>
+              `;
+            });
+            document.getElementById("video-list").innerHTML = html;
+          })
+          .catch(err => {
+            console.error("Error fetching videos:", err);
+            alert("Failed to fetch videos. See console for details.");
+          });
       })
       .catch(err => {
-        console.error("Error fetching videos:", err);
-        alert("Failed to fetch videos.");
+        console.error("Error fetching channel:", err);
+        alert("Failed to fetch channel info. See console for details.");
       });
-    })
-    .catch(err => {
-      console.error("Error fetching channel:", err);
-      alert("Failed to fetch channel info.");
-    });
   }
 
   window.onload = () => {
