@@ -1,109 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>YouTube Video Region Restriction Checker</title>
-<style>
-  body {
-    background: #121212;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    padding: 20px;
-    max-width: 600px;
-    margin: auto;
-  }
-  input, button {
-    padding: 10px;
-    margin: 5px 0;
-    width: 100%;
-    font-size: 16px;
-  }
-  button {
-    background: #ff0000;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #cc0000;
-  }
-  .result {
-    margin-top: 20px;
-    background: #282828;
-    padding: 15px;
-    border-radius: 6px;
-  }
-  .allowed {
-    color: #0f0;
-  }
-  .blocked {
-    color: #f33;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube Video Region Restriction Checker</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      font-size: 16px;
+    }
+    button {
+      background: #ff0000;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #cc0000;
+    }
+    .result {
+      margin-top: 20px;
+      background: #282828;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    .allowed {
+      color: #0f0;
+    }
+    .blocked {
+      color: #f33;
+    }
+  </style>
 </head>
 <body>
 
-<h2>YouTube Video Region Restriction Checker</h2>
-<input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" />
-<button id="checkBtn">Check Restrictions</button>
+  <h2>YouTube Video Region Restriction Checker</h2>
+  <input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" />
+  <button id="checkBtn">Check Restrictions</button>
 
-<div id="result" class="result" style="display:none;"></div>
+  <div id="result" class="result" style="display:none;"></div>
 
-<script>
-const API_KEY = "AIzaSyC--2Iwlm8Hs6nxilMLQUXEVYGfQzJlyL0";
+  <script>
+    const accessToken = localStorage.getItem("access_token");
 
-document.getElementById('checkBtn').addEventListener('click', () => {
-  const videoId = document.getElementById('videoIdInput').value.trim();
-  if (!videoId) {
-    alert('Please enter a YouTube video ID.');
-    return;
-  }
-  checkRegionRestrictions(videoId);
-});
+    if (!accessToken) {
+      alert("Please sign in first!");
+      window.location.href = "index.html";
+    }
 
-function checkRegionRestrictions(videoId) {
-  const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoId}&key=${API_KEY}`;
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      if (!data.items || data.items.length === 0) {
-        showResult("No video found with this ID.");
+    document.getElementById('checkBtn').addEventListener('click', () => {
+      const videoId = document.getElementById('videoIdInput').value.trim();
+      if (!videoId) {
+        alert('Please enter a YouTube video ID.');
         return;
       }
-      const video = data.items[0];
-      const title = video.snippet.title;
-      const regionRestriction = video.contentDetails.regionRestriction || {};
-
-      let allowed = regionRestriction.allowed || [];
-      let blocked = regionRestriction.blocked || [];
-
-      let html = `<h3>Title: ${title}</h3>`;
-
-      if (allowed.length > 0) {
-        html += `<p class="allowed"><strong>Allowed Countries:</strong> ${allowed.join(", ")}</p>`;
-        html += `<p class="blocked">All other countries are blocked.</p>`;
-      } else if (blocked.length > 0) {
-        html += `<p class="blocked"><strong>Blocked Countries:</strong> ${blocked.join(", ")}</p>`;
-        html += `<p class="allowed">All other countries are allowed.</p>`;
-      } else {
-        html += `<p>There is no region restriction on this video.</p>`;
-      }
-
-      showResult(html);
-    })
-    .catch(err => {
-      console.error(err);
-      showResult("Error fetching video details.");
+      checkRegionRestrictions(videoId);
     });
-}
 
-function showResult(html) {
-  const resultDiv = document.getElementById('result');
-  resultDiv.style.display = 'block';
-  resultDiv.innerHTML = html;
-}
-</script>
+    function checkRegionRestrictions(videoId) {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}`;
+
+      fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          showResult("❌ No video found with this ID.");
+          return;
+        }
+
+        const video = data.items[0];
+        const title = video.snippet.title;
+        const regionRestriction = video.contentDetails.regionRestriction || {};
+
+        let allowed = regionRestriction.allowed || [];
+        let blocked = regionRestriction.blocked || [];
+
+        let html = `<h3>Title: ${title}</h3>`;
+
+        if (allowed.length > 0) {
+          html += `<p class="allowed"><strong>Allowed Countries:</strong> ${allowed.join(", ")}</p>`;
+          html += `<p class="blocked">All other countries are blocked.</p>`;
+        } else if (blocked.length > 0) {
+          html += `<p class="blocked"><strong>Blocked Countries:</strong> ${blocked.join(", ")}</p>`;
+          html += `<p class="allowed">All other countries are allowed.</p>`;
+        } else {
+          html += `<p>✅ There is no region restriction on this video.</p>`;
+        }
+
+        showResult(html);
+      })
+      .catch(err => {
+        console.error(err);
+        showResult("❌ Error fetching video details.");
+      });
+    }
+
+    function showResult(html) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = html;
+    }
+  </script>
 
 </body>
 </html>
