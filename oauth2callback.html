@@ -44,8 +44,8 @@
             // Save token
             localStorage.setItem("access_token", token);
 
-            // ✅ Redirect to your panel page (small letters)
-            window.location.replace("contentmanagerpanel.html");
+            // ✅ Redirect to cms.html
+            window.location.replace("cms.html");
           } else {
             document.body.innerHTML = "<h1>❌ Error: Token not found!</h1><p>Try logging in again.</p>";
           }
