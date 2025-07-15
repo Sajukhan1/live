@@ -1,6 +1,6 @@
 import { connectDB, VideoRestriction } from "@/database";
 
-export async function GET(_, { params }) {
+export async function GET(req, { params }) {
   await connectDB();
 
   const { videoId } = params;
@@ -13,7 +13,7 @@ export async function GET(_, { params }) {
       blocked: video?.blockedCountries || [],
     });
   } catch (error) {
-    console.error("❌ Error fetching restrictions:", error);
+    console.error("Error fetching restrictions:", error);
     return Response.json(
       { error: "Server error while fetching restrictions." },
       { status: 500 }
@@ -21,13 +21,13 @@ export async function GET(_, { params }) {
   }
 }
 
-export async function POST(request, { params }) {
+export async function POST(req, { params }) {
   await connectDB();
 
   const { videoId } = params;
 
   try {
-    const body = await request.json();
+    const body = await req.json();
     const { allowedCountries = [], blockedCountries = [] } = body;
 
     const video = await VideoRestriction.findOneAndUpdate(
@@ -38,7 +38,7 @@ export async function POST(request, { params }) {
 
     return Response.json(video);
   } catch (error) {
-    console.error("❌ Error saving restrictions:", error);
+    console.error("Error saving restrictions:", error);
     return Response.json(
       { error: "Server error while saving restrictions." },
       { status: 500 }
