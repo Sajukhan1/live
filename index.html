@@ -136,17 +136,31 @@
     .save-btn:hover {
       background: #cc0000;
     }
-    .status {
-      margin-top: 8px;
-      color: #0f0;
-      font-size: 14px;
-      white-space: pre-wrap;
+    .status-block {
+      margin-top: 12px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-    .blocked-countries {
-      margin-top: 8px;
-      color: #ff6666;
-      font-weight: bold;
+    .allowed-block, .blocked-block {
+      flex: 1 1 200px;
+      background: #121212;
+      border-radius: 4px;
+      padding: 10px;
       font-size: 14px;
+    }
+    .allowed-block {
+      border-left: 4px solid #0f0;
+      color: #0f0;
+    }
+    .blocked-block {
+      border-left: 4px solid #f00;
+      color: #f66;
+    }
+    .allowed-block h4, .blocked-block h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      text-transform: uppercase;
     }
   </style>
 </head>
@@ -172,7 +186,6 @@
     window.CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
     let accessToken = null;
 
-    // সমস্ত দেশগুলো তালিকা
     const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
 
     document.getElementById("loginBtn").addEventListener("click", () => {
@@ -247,7 +260,7 @@
             const title = video.snippet.title;
             const publishedAt = video.snippet.publishedAt.substr(0,10);
             const views = video.statistics.viewCount || "0";
-            // Default allowed countries can be BD
+
             const allowedCountries = ["BD"];
             const blockedCountries = countryList.filter(c => !allowedCountries.includes(c));
 
@@ -265,10 +278,11 @@
                     ${countryList.map(c => `<option value="${c}" ${allowedCountries.includes(c) ? "selected" : ""}>${c}</option>`).join('')}
                   </select>
 
-                  <div class="blocked-countries">Blocked Countries: ${blockedCountries.join(", ")}</div>
-
                   <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
-                  <div id="output-${videoId}" class="status"></div>
+
+                  <div id="status-${videoId}" class="status-block">
+                    ${renderStatusBlocks(allowedCountries, blockedCountries)}
+                  </div>
                 </div>
               </div>
             `;
@@ -295,7 +309,6 @@
         return;
       }
 
-      // প্রথমে GET করে পুরো ভিডিও ডিটেইলস নাও
       fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}`, {
         headers: {
           Authorization: "Bearer " + accessToken,
@@ -309,12 +322,10 @@
         }
         const video = data.items[0];
 
-        // regionRestriction সেট করো
         video.contentDetails.regionRestriction = {
           allowed: selectedCountries
         };
 
-        // এখন PUT করো পুরো video resource
         return fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails`, {
           method: "PUT",
           headers: {
@@ -334,14 +345,27 @@
           alert("Error updating video: " + data.error.message);
         } else {
           alert("✅ Video allowed countries updated successfully!");
-          document.getElementById(`output-${videoId}`).innerText =
-            `✅ Allowed: ${selectedCountries.join(", ")}`;
+          const blockedCountries = countryList.filter(c => !selectedCountries.includes(c));
+          document.getElementById(`status-${videoId}`).innerHTML = renderStatusBlocks(selectedCountries, blockedCountries);
         }
       })
       .catch(err => {
         console.error(err);
         alert("Failed to update video.");
       });
+    }
+
+    function renderStatusBlocks(allowed, blocked) {
+      return `
+        <div class="allowed-block">
+          <h4>Allowed Countries</h4>
+          ${allowed.length > 0 ? allowed.join(", ") : "None"}
+        </div>
+        <div class="blocked-block">
+          <h4>Blocked Countries</h4>
+          ${blocked.length > 0 ? blocked.join(", ") : "None"}
+        </div>
+      `;
     }
 
     window.onload = () => {
