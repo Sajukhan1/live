@@ -261,8 +261,16 @@
             const publishedAt = video.snippet.publishedAt.substr(0,10);
             const views = video.statistics.viewCount || "0";
 
-            const allowedCountries = ["BD"];
-            const blockedCountries = countryList.filter(c => !allowedCountries.includes(c));
+            let allowedCountries = [];
+            let blockedCountries = [];
+
+            if (video.contentDetails.regionRestriction) {
+              allowedCountries = video.contentDetails.regionRestriction.allowed || [];
+              blockedCountries = video.contentDetails.regionRestriction.blocked || [];
+            } else {
+              allowedCountries = countryList; // default all allowed
+              blockedCountries = [];
+            }
 
             html += `
               <div class="video-item">
