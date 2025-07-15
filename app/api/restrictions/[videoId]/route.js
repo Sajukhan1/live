@@ -1,6 +1,6 @@
-import { connectDB, VideoRestriction } from "../../../../database.js";
+import { connectDB, VideoRestriction } from "@/database";
 
-export async function GET(request, { params }) {
+export async function GET(_, { params }) {
   await connectDB();
 
   const { videoId } = params;
@@ -8,25 +8,15 @@ export async function GET(request, { params }) {
   try {
     const video = await VideoRestriction.findOne({ videoId });
 
-    if (!video) {
-      return new Response(
-        JSON.stringify({ allowed: [], blocked: [] }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        allowed: video.allowedCountries,
-        blocked: video.blockedCountries,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return Response.json({
+      allowed: video?.allowedCountries || [],
+      blocked: video?.blockedCountries || [],
+    });
   } catch (error) {
-    console.error("Error fetching restrictions:", error);
-    return new Response(
-      JSON.stringify({ error: "Server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    console.error("❌ Error fetching restrictions:", error);
+    return Response.json(
+      { error: "Server error while fetching restrictions." },
+      { status: 500 }
     );
   }
 }
@@ -37,8 +27,8 @@ export async function POST(request, { params }) {
   const { videoId } = params;
 
   try {
-    const data = await request.json();
-    const { allowedCountries = [], blockedCountries = [] } = data;
+    const body = await request.json();
+    const { allowedCountries = [], blockedCountries = [] } = body;
 
     const video = await VideoRestriction.findOneAndUpdate(
       { videoId },
@@ -46,15 +36,12 @@ export async function POST(request, { params }) {
       { upsert: true, new: true }
     );
 
-    return new Response(
-      JSON.stringify(video),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return Response.json(video);
   } catch (error) {
-    console.error("Error saving restrictions:", error);
-    return new Response(
-      JSON.stringify({ error: "Server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    console.error("❌ Error saving restrictions:", error);
+    return Response.json(
+      { error: "Server error while saving restrictions." },
+      { status: 500 }
     );
   }
 }
