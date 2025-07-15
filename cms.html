@@ -2,60 +2,282 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OAuth Callback</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube CMS Panel</title>
   <style>
-    body {
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Roboto, sans-serif;
       background: #181818;
       color: #fff;
-      font-family: 'Roboto', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      flex-direction: column;
-      text-align: center;
+      height: 100%;
+      overflow-x: hidden;
     }
-    h1 {
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #202020;
+      padding: 10px 16px;
+      height: 56px;
+    }
+    header h1 {
+      font-size: 18px;
       color: #ff0000;
-      font-size: 20px;
+      margin: 0;
+      font-weight: bold;
+    }
+    main {
+      margin-top: 64px;
+      padding: 16px;
+    }
+    .channel-info {
+      background: #282828;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .channel-info img {
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
       margin-bottom: 8px;
     }
-    p {
+    .channel-info h2 {
+      color: #ff0000;
+      margin: 0;
+      font-size: 18px;
+    }
+    .channel-info p {
       font-size: 14px;
       color: #aaa;
+      margin: 4px 0;
+    }
+    .video-list-title {
+      font-size: 16px;
+      color: #ff0000;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .video-item {
+      background: #282828;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .video-thumb img {
+      width: 100%;
+      display: block;
+    }
+    .video-details {
+      padding: 12px;
+    }
+    .video-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .video-views {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .allowed-block, .blocked-block {
+      background: #121212;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .allowed-block {
+      border-left: 4px solid #0f0;
+      color: #0f0;
+    }
+    .blocked-block {
+      border-left: 4px solid #f00;
+      color: #f66;
+    }
+    .save-btn {
+      background: #ff0000;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .save-btn:hover {
+      background: #cc0000;
     }
   </style>
 </head>
 <body>
-  <h1>Processing login...</h1>
-  <p>Please wait while we redirect you.</p>
+  <header>
+    <h1>YouTube CMS Panel</h1>
+    <button id="logoutBtn" style="background:#ff0000; color:#fff; border:none; padding:8px 12px; border-radius:4px; cursor:pointer;">Logout</button>
+  </header>
+
+  <main>
+    <div id="channel-info"></div>
+    <div class="video-list-title">Your Videos</div>
+    <div id="video-list"></div>
+  </main>
 
   <script>
-    (function() {
-      try {
-        const hash = window.location.hash;
-        if (hash.includes("access_token")) {
-          const params = new URLSearchParams(hash.substring(1));
-          const token = params.get("access_token");
+    const countryList = ["US", "CA", "GB", "IN", "BD", "PK", "AU", "FR", "DE", "BR", "SA"];
 
-          if (token) {
-            // Save token
-            localStorage.setItem("access_token", token);
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("No token found. Please login again.");
+      window.location.href = "/";
+    }
 
-            // ✅ Redirect to the new CMS panel page
-            window.location.replace("https://saju-live.vercel.app/cms.html");
-          } else {
-            document.body.innerHTML = "<h1>❌ Error: Token not found!</h1><p>Try logging in again.</p>";
-          }
-        } else {
-          document.body.innerHTML = "<h1>❌ Error: No access token!</h1><p>OAuth failed or was denied.</p>";
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("access_token");
+      window.location.href = "/";
+    });
+
+    function fetchChannel() {
+      fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&mine=true", {
+        headers: {
+          Authorization: "Bearer " + token
         }
-      } catch (e) {
-        document.body.innerHTML = "<h1>❌ Exception:</h1><p>" + e.message + "</p>";
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          alert("No channel found.");
+          return;
+        }
+        const ch = data.items[0];
+        const html = `
+          <div class="channel-info">
+            <img src="${ch.snippet.thumbnails?.default?.url || ''}" alt="${ch.snippet.title}" />
+            <h2>${ch.snippet.title}</h2>
+            <p>Subscribers: ${ch.statistics.subscriberCount}</p>
+            <p>Total Views: ${ch.statistics.viewCount}</p>
+            <p>Videos: ${ch.statistics.videoCount}</p>
+          </div>
+        `;
+        document.getElementById("channel-info").innerHTML = html;
+
+        fetchVideos(ch.contentDetails.relatedPlaylists.uploads);
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error loading channel info.");
+      });
+    }
+
+    function fetchVideos(playlistId) {
+      fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=10`, {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          document.getElementById("video-list").innerHTML = "<p>No videos found.</p>";
+          return;
+        }
+
+        const ids = data.items.map(item => item.snippet.resourceId.videoId).join(",");
+        fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${ids}`, {
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        })
+        .then(r => r.json())
+        .then(details => {
+          let html = "";
+          details.items.forEach(video => {
+            const allowed = video.contentDetails.regionRestriction?.allowed || countryList;
+            const blocked = video.contentDetails.regionRestriction?.blocked || [];
+
+            html += `
+              <div class="video-item">
+                <div class="video-thumb">
+                  <img src="${video.snippet.thumbnails?.medium?.url || ''}" alt="${video.snippet.title}">
+                </div>
+                <div class="video-details">
+                  <div class="video-title">${video.snippet.title}</div>
+                  <div class="video-views">${video.snippet.publishedAt.substr(0,10)} • ${video.statistics.viewCount || 0} views</div>
+                  
+                  <label style="color:#ff0000;font-weight:bold;">Allowed Countries:</label>
+                  <select multiple id="countrySelect-${video.id}" style="width:100%; background:#121212; color:#fff; padding:8px; border:1px solid #555; border-radius:4px;">
+                    ${countryList.map(c => `<option value="${c}" ${allowed.includes(c) ? "selected" : ""}>${c}</option>`).join("")}
+                  </select>
+                  <button class="save-btn" onclick="saveVideo('${video.id}')">Save Settings</button>
+                  <div class="allowed-block">
+                    <strong>Allowed:</strong> ${allowed.join(", ") || "None"}
+                  </div>
+                  <div class="blocked-block">
+                    <strong>Blocked:</strong> ${blocked.join(", ") || "None"}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          document.getElementById("video-list").innerHTML = html;
+        });
+      });
+    }
+
+    function saveVideo(videoId) {
+      const selected = Array.from(document.getElementById(`countrySelect-${videoId}`).selectedOptions).map(x => x.value);
+      if (!selected.length) {
+        alert("Select at least one country.");
+        return;
       }
-    })();
+
+      fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}`, {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        const video = data.items[0];
+        video.contentDetails.regionRestriction = {
+          allowed: selected
+        };
+
+        return fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails", {
+          method: "PUT",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            id: video.id,
+            snippet: video.snippet,
+            contentDetails: video.contentDetails
+          })
+        });
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          alert("Error saving video: " + data.error.message);
+        } else {
+          alert("✅ Video updated successfully!");
+          fetchChannel();
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error updating video.");
+      });
+    }
+
+    window.onload = fetchChannel;
   </script>
 </body>
 </html>
