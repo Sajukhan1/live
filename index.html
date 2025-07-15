@@ -228,6 +228,11 @@
       })
       .then(res => res.json())
       .then(data => {
+        if (!data.items || data.items.length === 0) {
+          document.getElementById("video-list").innerHTML = "<p>No videos found.</p>";
+          return;
+        }
+
         const videoIds = data.items.map(item => item.snippet.resourceId.videoId).join(",");
         if (!videoIds) return;
 
@@ -242,7 +247,7 @@
             const title = video.snippet.title;
             const publishedAt = video.snippet.publishedAt.substr(0,10);
             const views = video.statistics.viewCount || "0";
-            // Allowed শুধু BD, blocked = বাকী সব
+            // Default allowed countries can be BD
             const allowedCountries = ["BD"];
             const blockedCountries = countryList.filter(c => !allowedCountries.includes(c));
 
@@ -290,25 +295,38 @@
         return;
       }
 
-      const blockedCountries = countryList.filter(c => !selectedCountries.includes(c));
-
-      document.getElementById(`output-${videoId}`).innerText =
-        `✅ Allowed: ${selectedCountries.join(", ")}\n❌ Blocked: ${blockedCountries.join(", ")}`;
-
-      fetch("https://www.googleapis.com/youtube/v3/videos?part=contentDetails", {
-        method: "PUT",
+      // প্রথমে GET করে পুরো ভিডিও ডিটেইলস নাও
+      fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}`, {
         headers: {
           Authorization: "Bearer " + accessToken,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          id: videoId,
-          contentDetails: {
-            regionRestriction: {
-              allowed: selectedCountries
-            }
-          }
-        })
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          alert("Video not found");
+          return;
+        }
+        const video = data.items[0];
+
+        // regionRestriction সেট করো
+        video.contentDetails.regionRestriction = {
+          allowed: selectedCountries
+        };
+
+        // এখন PUT করো পুরো video resource
+        return fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails`, {
+          method: "PUT",
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            id: video.id,
+            snippet: video.snippet,
+            contentDetails: video.contentDetails
+          })
+        });
       })
       .then(res => res.json())
       .then(data => {
@@ -316,6 +334,8 @@
           alert("Error updating video: " + data.error.message);
         } else {
           alert("✅ Video allowed countries updated successfully!");
+          document.getElementById(`output-${videoId}`).innerText =
+            `✅ Allowed: ${selectedCountries.join(", ")}`;
         }
       })
       .catch(err => {
