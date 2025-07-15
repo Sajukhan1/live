@@ -12,34 +12,47 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 // Test route
-app.get("/", (req, res) => res.send("YouTube CMS Backend Running"));
+app.get("/", (req, res) => {
+  res.send("✅ YouTube CMS Backend Running");
+});
 
 // Get restrictions for video
 app.get("/api/restrictions/:videoId", async (req, res) => {
   try {
     const video = await VideoRestriction.findOne({ videoId: req.params.videoId });
-    if (!video) return res.json({ allowed: [], blocked: [] });
-    res.json({ allowed: video.allowedCountries, blocked: video.blockedCountries });
+
+    if (!video) {
+      return res.json({ allowed: [], blocked: [] });
+    }
+
+    res.json({
+      allowed: video.allowedCountries,
+      blocked: video.blockedCountries,
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Save/update restrictions for video
+// Save or update restrictions for video
 app.post("/api/restrictions/:videoId", async (req, res) => {
   try {
     const { allowedCountries = [], blockedCountries = [] } = req.body;
+
     const video = await VideoRestriction.findOneAndUpdate(
       { videoId: req.params.videoId },
       { allowedCountries, blockedCountries },
       { upsert: true, new: true }
     );
+
     res.json(video);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
