@@ -33,12 +33,16 @@
     background: #282828;
     padding: 15px;
     border-radius: 6px;
+    white-space: pre-wrap;
   }
   .allowed {
     color: #0f0;
   }
   .blocked {
     color: #f33;
+  }
+  #authSection {
+    margin-bottom: 15px;
   }
 </style>
 </head>
@@ -51,35 +55,42 @@
   <button id="logoutBtn" style="display:none;">🚪 Logout</button>
 </div>
 
-<p id="userInfo" style="margin:10px 0;"></p>
-
-<input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" />
+<input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" autocomplete="off" />
 <button id="checkBtn">Check Restrictions</button>
 
 <div id="result" class="result" style="display:none;"></div>
 
 <script>
 const CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleusercontent.com";
-const REDIRECT_URI = "https://saju-live.vercel.app/";
+const REDIRECT_URI = "https://saju-live.vercel.app/"; // তোমার Redirect URI
 let accessToken = null;
 
+// Login button click → OAuth URL redirect
 document.getElementById('loginBtn').addEventListener('click', () => {
-  const scopes = encodeURIComponent(
-    "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube"
-  );
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
-  window.location.href = url;
+  const scopes = encodeURIComponent([
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
+    "https://www.googleapis.com/auth/youtube",
+    "openid",
+    "profile",
+    "email"
+  ].join(" "));
+  
+  const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=token&scope=${scopes}&include_granted_scopes=true&prompt=consent`;
+  
+  window.location.href = oauthUrl;
 });
 
+// Logout button → clear token and UI
 document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem("access_token");
   accessToken = null;
-  document.getElementById("loginBtn").style.display = "inline-block";
-  document.getElementById("logoutBtn").style.display = "none";
-  document.getElementById("userInfo").innerText = "";
+  toggleAuthButtons(false);
+  showResult('');
   alert("Logged out!");
 });
 
+// Check button → validate input and call API
 document.getElementById('checkBtn').addEventListener('click', () => {
   const videoId = document.getElementById('videoIdInput').value.trim();
   if (!videoId) {
@@ -95,15 +106,18 @@ function checkRegionRestrictions(videoId) {
     return;
   }
 
-  const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoId}`;
-  fetch(url, {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${videoId}`;
+
+  fetch(apiUrl, {
     headers: {
       Authorization: "Bearer " + accessToken
     }
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    return res.json();
+  })
   .then(data => {
-    console.log("Video API response:", data);
     if (!data.items || data.items.length === 0) {
       showResult("❌ No video found with this ID or it is private/unlisted (without proper access).");
       return;
@@ -115,7 +129,7 @@ function checkRegionRestrictions(videoId) {
     let allowed = regionRestriction.allowed || [];
     let blocked = regionRestriction.blocked || [];
 
-    let html = `<h3>Title: ${title}</h3>`;
+    let html = `<h3>Title: ${escapeHtml(title)}</h3>`;
 
     if (allowed.length > 0) {
       html += `<p class="allowed"><strong>Allowed Countries:</strong> ${allowed.join(", ")}</p>`;
@@ -131,16 +145,39 @@ function checkRegionRestrictions(videoId) {
   })
   .catch(err => {
     console.error(err);
-    showResult("Error fetching video details.");
+    showResult(`❌ Error fetching video details:\n${escapeHtml(err.message)}`);
   });
 }
 
 function showResult(html) {
   const resultDiv = document.getElementById('result');
-  resultDiv.style.display = 'block';
-  resultDiv.innerHTML = html;
+  if (!html) {
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+  } else {
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = html;
+  }
 }
 
+function toggleAuthButtons(loggedIn) {
+  document.getElementById("loginBtn").style.display = loggedIn ? "none" : "inline-block";
+  document.getElementById("logoutBtn").style.display = loggedIn ? "inline-block" : "none";
+}
+
+// Escape HTML to avoid XSS issues
+function escapeHtml(text) {
+  const map = {
+    '&': "&amp;",
+    '<': "&lt;",
+    '>': "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// On page load → get token from URL hash or localStorage
 window.onload = () => {
   const hash = window.location.hash;
   if (hash.includes("access_token")) {
@@ -148,42 +185,11 @@ window.onload = () => {
     accessToken = params.get("access_token");
     localStorage.setItem("access_token", accessToken);
     window.history.replaceState({}, document.title, window.location.pathname);
-
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: {
-        Authorization: "Bearer " + accessToken
-      }
-    })
-    .then(res => res.json())
-    .then(user => {
-      console.log("✅ Logged in user:", user);
-      document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
-    })
-    .catch(err => console.error(err));
   } else {
     accessToken = localStorage.getItem("access_token");
-    if (accessToken) {
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-          Authorization: "Bearer " + accessToken
-        }
-      })
-      .then(res => res.json())
-      .then(user => {
-        console.log("✅ Logged in user:", user);
-        document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
-      })
-      .catch(err => console.error(err));
-    }
   }
 
-  if (accessToken) {
-    document.getElementById("loginBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline-block";
-  } else {
-    document.getElementById("loginBtn").style.display = "inline-block";
-    document.getElementById("logoutBtn").style.display = "none";
-  }
+  toggleAuthButtons(!!accessToken);
 };
 </script>
 
