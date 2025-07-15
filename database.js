@@ -1,23 +1,39 @@
 import mongoose from "mongoose";
 
-export async function connectDB() {
-  const uri = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-  if (!uri) {
+// Prevent multiple connections in dev or Next.js
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+export async function connectDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!MONGODB_URI) {
     console.error("❌ MONGODB_URI is not defined in environment variables.");
     process.exit(1);
   }
 
-  try {
-    await mongoose.connect(uri, {
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+    }).then((mongoose) => {
+      console.log("✅ MongoDB connected");
+      return mongoose;
+    }).catch(err => {
+      console.error("❌ MongoDB connection error:", err);
+      process.exit(1);
     });
-    console.log("✅ MongoDB connected");
-  } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
   }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
 
 const videoRestrictionSchema = new mongoose.Schema({
@@ -26,4 +42,6 @@ const videoRestrictionSchema = new mongoose.Schema({
   blockedCountries: { type: [String], default: [] },
 });
 
-export const VideoRestriction = mongoose.model("VideoRestriction", videoRestrictionSchema);
+// Prevent model overwrite error in hot-reload
+export const VideoRestriction = mongoose.models.VideoRestriction
+  || mongoose.model("VideoRestriction", videoRestrictionSchema);
