@@ -132,9 +132,24 @@
       cursor: pointer;
       font-weight: bold;
       width: 100%;
+      margin-top: 8px;
     }
     .save-btn:hover {
       background: #cc0000;
+    }
+    .studio-btn {
+      background: #3367d6;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .studio-btn:hover {
+      background: #254ba7;
     }
     .status-block {
       margin-top: 12px;
@@ -287,6 +302,7 @@
                   </select>
 
                   <button class="save-btn" onclick="saveVideoSettings('${videoId}')">Save Settings</button>
+                  <button class="studio-btn" onclick="openStudioEdit('${videoId}')">Open in Studio</button>
 
                   <div id="status-${videoId}" class="status-block">
                     ${renderStatusBlocks(allowedCountries, blockedCountries)}
@@ -374,6 +390,11 @@
           ${blocked.length > 0 ? blocked.join(", ") : "None"}
         </div>
       `;
+    }
+
+    function openStudioEdit(videoId) {
+      const url = `https://studio.youtube.com/video/${videoId}/edit`;
+      window.open(url, "_blank");
     }
 
     window.onload = () => {
