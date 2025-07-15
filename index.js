@@ -12,59 +12,74 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB connected successfully"))
-.catch((err) => {
-  console.error("❌ MongoDB connection error:", err);
-  process.exit(1);
-});
+// ✅ Connect to MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("✅ MongoDB connected successfully");
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err.message);
+    process.exit(1);
+  });
 
-// Test route
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("✅ YouTube CMS Backend Running");
 });
 
-// Get restrictions for video
+// ✅ Get restrictions for a specific video
 app.get("/api/restrictions/:videoId", async (req, res) => {
   try {
-    const video = await VideoRestriction.findOne({ videoId: req.params.videoId });
+    const videoId = req.params.videoId;
+    console.log("🔍 Fetching restrictions for videoId:", videoId);
+
+    const video = await VideoRestriction.findOne({ videoId });
 
     if (!video) {
+      console.log("ℹ️ No restriction found for videoId:", videoId);
       return res.json({ allowed: [], blocked: [] });
     }
 
+    console.log("✅ Restriction found:", video);
     res.json({
       allowed: video.allowedCountries,
       blocked: video.blockedCountries,
     });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error fetching restrictions:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Save or update restrictions for video
+// ✅ Save or update restrictions for a specific video
 app.post("/api/restrictions/:videoId", async (req, res) => {
   try {
+    const videoId = req.params.videoId;
     const { allowedCountries = [], blockedCountries = [] } = req.body;
 
+    console.log("📝 Saving restrictions for videoId:", videoId);
+    console.log("Allowed:", allowedCountries);
+    console.log("Blocked:", blockedCountries);
+
     const video = await VideoRestriction.findOneAndUpdate(
-      { videoId: req.params.videoId },
+      { videoId },
       { allowedCountries, blockedCountries },
       { upsert: true, new: true }
     );
 
+    console.log("✅ Restriction saved/updated:", video);
     res.json(video);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error saving restrictions:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server listening on port ${PORT}`);
 });
