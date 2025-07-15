@@ -1,6 +1,10 @@
 import express from "express";
 import cors from "cors";
-import { connectDB, VideoRestriction } from "./database.js";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
+
+import { VideoRestriction } from "./database.js";
 
 const app = express();
 app.use(cors());
@@ -9,7 +13,15 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 // Connect to MongoDB
-connectDB();
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log("✅ MongoDB connected successfully"))
+.catch((err) => {
+  console.error("❌ MongoDB connection error:", err);
+  process.exit(1);
+});
 
 // Test route
 app.get("/", (req, res) => {
