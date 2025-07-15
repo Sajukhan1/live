@@ -1,1 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OAuth Callback</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #181818;
+      color: #fff;
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+      text-align: center;
+    }
+    h1 {
+      color: #ff0000;
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    p {
+      font-size: 14px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <h1>Processing login...</h1>
+  <p>Please wait while we redirect you.</p>
 
+  <script>
+    (function() {
+      try {
+        const hash = window.location.hash;
+        if (hash.includes("access_token")) {
+          const params = new URLSearchParams(hash.substring(1));
+          const token = params.get("access_token");
+
+          if (token) {
+            // Save token
+            localStorage.setItem("access_token", token);
+
+            // ✅ Redirect to your panel page
+            window.location.replace("contentManagerPanel.html");
+          } else {
+            document.body.innerHTML = "<h1>❌ Error: Token not found!</h1><p>Try logging in again.</p>";
+          }
+        } else {
+          document.body.innerHTML = "<h1>❌ Error: No access token!</h1><p>OAuth failed or was denied.</p>";
+        }
+      } catch (e) {
+        document.body.innerHTML = "<h1>❌ Exception:</h1><p>" + e.message + "</p>";
+      }
+    })();
+  </script>
+</body>
+</html>
