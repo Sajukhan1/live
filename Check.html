@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>YouTube Video Region Restriction Checker</title>
-  <style>
-    body {
-      background: #121212;
-      color: #eee;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      font-size: 16px;
-    }
-    button {
-      background: #ff0000;
-      border: none;
-      color: #fff;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #cc0000;
-    }
-    .result {
-      margin-top: 20px;
-      background: #282828;
-      padding: 15px;
-      border-radius: 6px;
-    }
-    .allowed {
-      color: #0f0;
-    }
-    .blocked {
-      color: #f33;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>YouTube Video Region Restriction Checker</title>
+<style>
+  body {
+    background: #121212;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 600px;
+    margin: auto;
+  }
+  input, button {
+    padding: 10px;
+    margin: 5px 0;
+    width: 100%;
+    font-size: 16px;
+  }
+  button {
+    background: #ff0000;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #cc0000;
+  }
+  .result {
+    margin-top: 20px;
+    background: #282828;
+    padding: 15px;
+    border-radius: 6px;
+  }
+  .allowed {
+    color: #0f0;
+  }
+  .blocked {
+    color: #f33;
+  }
+</style>
 </head>
 <body>
 
@@ -50,6 +50,8 @@
   <button id="loginBtn">🔑 Sign in with Google</button>
   <button id="logoutBtn" style="display:none;">🚪 Logout</button>
 </div>
+
+<p id="userInfo" style="margin:10px 0;"></p>
 
 <input type="text" id="videoIdInput" placeholder="Enter YouTube Video ID (e.g. 5To0cZTC-rU)" />
 <button id="checkBtn">Check Restrictions</button>
@@ -61,7 +63,6 @@ const CLIENT_ID = "660995424565-gqjg9cis8bojph9clv7vjuv3knpp9er0.apps.googleuser
 const REDIRECT_URI = "https://saju-live.vercel.app/";
 let accessToken = null;
 
-// Login Button
 document.getElementById('loginBtn').addEventListener('click', () => {
   const scopes = encodeURIComponent(
     "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube"
@@ -70,16 +71,15 @@ document.getElementById('loginBtn').addEventListener('click', () => {
   window.location.href = url;
 });
 
-// Logout Button
 document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem("access_token");
   accessToken = null;
   document.getElementById("loginBtn").style.display = "inline-block";
   document.getElementById("logoutBtn").style.display = "none";
+  document.getElementById("userInfo").innerText = "";
   alert("Logged out!");
 });
 
-// Check Button
 document.getElementById('checkBtn').addEventListener('click', () => {
   const videoId = document.getElementById('videoIdInput').value.trim();
   if (!videoId) {
@@ -103,6 +103,7 @@ function checkRegionRestrictions(videoId) {
   })
   .then(res => res.json())
   .then(data => {
+    console.log("Video API response:", data);
     if (!data.items || data.items.length === 0) {
       showResult("❌ No video found with this ID or it is private/unlisted (without proper access).");
       return;
@@ -114,7 +115,7 @@ function checkRegionRestrictions(videoId) {
     let allowed = regionRestriction.allowed || [];
     let blocked = regionRestriction.blocked || [];
 
-    let html = `<h3>🎬 Title: ${title}</h3>`;
+    let html = `<h3>Title: ${title}</h3>`;
 
     if (allowed.length > 0) {
       html += `<p class="allowed"><strong>Allowed Countries:</strong> ${allowed.join(", ")}</p>`;
@@ -123,14 +124,14 @@ function checkRegionRestrictions(videoId) {
       html += `<p class="blocked"><strong>Blocked Countries:</strong> ${blocked.join(", ")}</p>`;
       html += `<p class="allowed">All other countries are allowed.</p>`;
     } else {
-      html += `<p>✅ No region restriction found.</p>`;
+      html += `<p>✅ There is no region restriction on this video.</p>`;
     }
 
     showResult(html);
   })
   .catch(err => {
     console.error(err);
-    showResult("⚠️ Error fetching video details.");
+    showResult("Error fetching video details.");
   });
 }
 
@@ -140,7 +141,6 @@ function showResult(html) {
   resultDiv.innerHTML = html;
 }
 
-// On page load: check access token
 window.onload = () => {
   const hash = window.location.hash;
   if (hash.includes("access_token")) {
@@ -148,8 +148,33 @@ window.onload = () => {
     accessToken = params.get("access_token");
     localStorage.setItem("access_token", accessToken);
     window.history.replaceState({}, document.title, window.location.pathname);
+
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: {
+        Authorization: "Bearer " + accessToken
+      }
+    })
+    .then(res => res.json())
+    .then(user => {
+      console.log("✅ Logged in user:", user);
+      document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
+    })
+    .catch(err => console.error(err));
   } else {
     accessToken = localStorage.getItem("access_token");
+    if (accessToken) {
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: "Bearer " + accessToken
+        }
+      })
+      .then(res => res.json())
+      .then(user => {
+        console.log("✅ Logged in user:", user);
+        document.getElementById("userInfo").innerText = "Logged in as: " + user.email;
+      })
+      .catch(err => console.error(err));
+    }
   }
 
   if (accessToken) {
