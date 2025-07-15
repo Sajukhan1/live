@@ -44,7 +44,7 @@
             // Save token
             localStorage.setItem("access_token", token);
 
-            // ✅ Redirect to your new panel page (full URL)
+            // ✅ Redirect to the new CMS panel page
             window.location.replace("https://saju-live.vercel.app/cms.html");
           } else {
             document.body.innerHTML = "<h1>❌ Error: Token not found!</h1><p>Try logging in again.</p>";
