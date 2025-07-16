@@ -1,118 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>CMS - Video Restrictions</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Restriction CMS</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f2f2f2;
+      margin: 0;
       padding: 20px;
     }
-    .video-card {
-      background: white;
-      padding: 15px;
-      margin-bottom: 20px;
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .video {
+      background: #fff;
       border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .video-title {
-      font-size: 20px;
-      font-weight: bold;
+
+    .video h2 {
+      margin: 0 0 10px;
     }
-    .field-group {
-      margin: 10px 0;
-    }
-    .field-group input {
+
+    input[type="text"] {
       width: 100%;
       padding: 8px;
-      margin-top: 5px;
+      margin-top: 8px;
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-    .save-btn {
-      background: #007bff;
-      color: white;
+
+    button {
+      margin-top: 8px;
       padding: 8px 16px;
+      background-color: #0070f3;
+      color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
     }
-    .save-btn:hover {
-      background: #0056b3;
+
+    button:hover {
+      background-color: #005bbb;
     }
-    .restriction-label {
-      margin-top: 10px;
-      color: #555;
+
+    .status {
+      margin-top: 8px;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
-  <h1>🎬 Video Restriction Manager</h1>
-  <div id="video-list">Loading videos...</div>
+  <h1>📺 Video Country Restriction CMS</h1>
+  <div id="videos"></div>
 
   <script>
-    const token = "YOUR_AUTH_TOKEN"; // 🟡 আপনার টোকেন এখানে বসান
+    const videosContainer = document.getElementById("videos");
 
     async function fetchVideos() {
-      const res = await fetch("/api/videos"); // 🟢 আপনার ভিডিও API route
+      const res = await fetch('/api/restrictions');
       const videos = await res.json();
-      const container = document.getElementById("video-list");
-      container.innerHTML = "";
+
+      videosContainer.innerHTML = '';
 
       videos.forEach(video => {
         const div = document.createElement("div");
-        div.className = "video-card";
+        div.className = "video";
+
         div.innerHTML = `
-          <div class="video-title">${video.title}</div>
-          <div class="field-group">
-            <label>Allowed Countries (comma separated):</label>
-            <input id="input-allowed-${video.id}" placeholder="e.g. US, CA" value="${(video.allowedCountries || []).join(', ')}" />
-          </div>
-          <div class="field-group">
-            <label>Blocked Countries (comma separated):</label>
-            <input id="input-blocked-${video.id}" placeholder="e.g. IN, CN" value="${(video.blockedCountries || []).join(', ')}" />
-          </div>
-          <button class="save-btn" onclick="saveRestriction('${video.id}')">Save Restrictions</button>
-          <div class="restriction-label" id="allowed-${video.id}">Allowed: ${video.allowedCountries?.join(', ') || 'None'}</div>
-          <div class="restriction-label" id="blocked-${video.id}">Blocked: ${video.blockedCountries?.join(', ') || 'None'}</div>
+          <h2>${video.title}</h2>
+          <label>Country Restrictions (comma separated codes):</label>
+          <input type="text" id="input-${video._id}" value="${video.countryRestrictions.join(',')}">
+          <button onclick="updateRestrictions('${video._id}')">Update</button>
+          <div class="status" id="status-${video._id}"></div>
         `;
-        container.appendChild(div);
+
+        videosContainer.appendChild(div);
       });
     }
 
-    function saveRestriction(videoId) {
-      const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
-      const blockedInput = document.getElementById(`input-blocked-${videoId}`).value;
+    async function updateRestrictions(videoId) {
+      const input = document.getElementById(`input-${videoId}`);
+      const status = document.getElementById(`status-${videoId}`);
+      const countries = input.value.split(',').map(code => code.trim()).filter(Boolean);
 
-      const allowedCountries = allowedInput
-        ? allowedInput.split(",").map(s => s.trim().toUpperCase())
-        : [];
-
-      const blockedCountries = blockedInput
-        ? blockedInput.split(",").map(s => s.trim().toUpperCase())
-        : [];
-
-      fetch(`/api/restrictions/${videoId}`, {
-        method: "POST",
+      const res = await fetch(`/api/restrictions/${videoId}`, {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ allowedCountries, blockedCountries })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert("✅ Restrictions saved!");
-        document.getElementById(`allowed-${videoId}`).innerHTML =
-          `Allowed: ${data.allowedCountries.length ? data.allowedCountries.join(", ") : "None"}`;
-        document.getElementById(`blocked-${videoId}`).innerHTML =
-          `Blocked: ${data.blockedCountries.length ? data.blockedCountries.join(", ") : "None"}`;
-      })
-      .catch(err => {
-        console.error(err);
-        alert("❌ Error saving restrictions.");
+        body: JSON.stringify({ countryRestrictions: countries })
       });
+
+      const result = await res.json();
+
+      if (res.ok) {
+        status.innerText = '✅ Updated successfully!';
+        status.style.color = 'green';
+      } else {
+        status.innerText = `❌ Error: ${result.error || 'Something went wrong'}`;
+        status.style.color = 'red';
+      }
     }
 
     fetchVideos();
