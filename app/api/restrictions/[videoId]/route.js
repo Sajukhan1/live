@@ -1,4 +1,4 @@
-import { connectDB, VideoRestriction } from "../../../database.js";
+import { connectDB, VideoRestriction } from "../../../../database.js";
 
 export async function GET(request, { params }) {
   await connectDB();
