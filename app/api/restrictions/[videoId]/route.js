@@ -1,21 +1,13 @@
-// live/app/api/restrictions/[videoId]/route.js
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../../../lib/database';
-import { ObjectId } from 'mongodb'; // Optional
+import { connectDB } from '@/app/database';
+import Video from '@/app/api/models/video';
 
-export async function GET(req, { params }) {
-  const db = await connectToDatabase();
-  const restriction = await db.collection('restrictions').findOne({ videoId: params.videoId });
-  return NextResponse.json(restriction || { allowedCountries: [], blockedCountries: [] });
-}
-
-export async function POST(req, { params }) {
-  const db = await connectToDatabase();
-  const data = await req.json();
-  await db.collection('restrictions').updateOne(
-    { videoId: params.videoId },
-    { $set: { ...data, videoId: params.videoId } },
-    { upsert: true }
-  );
-  return NextResponse.json({ ...data, videoId: params.videoId });
+export async function GET() {
+  try {
+    await connectDB();
+    const videos = await Video.find();
+    return NextResponse.json(videos);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
