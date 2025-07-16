@@ -87,7 +87,7 @@
   </div>
 
   <script>
-    const token = "your_token_here"; // ✅ Replace this with your actual token
+    const token = "your_token_here"; // 🔐 Replace with your actual token
 
     function saveRestriction(videoId) {
       const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
@@ -105,7 +105,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // ✅ Required
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({ allowedCountries, blockedCountries })
       })
