@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube CMS Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Roboto, sans-serif;
+      background: #181818;
+      color: #fff;
+      height: 100%;
+      overflow-x: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #202020;
+      padding: 10px 16px;
+      height: 56px;
+    }
+    header h1 {
+      font-size: 18px;
+      color: #ff0000;
+      margin: 0;
+      font-weight: bold;
+    }
+    main {
+      margin-top: 64px;
+      padding: 16px;
+    }
+    .channel-info {
+      background: #282828;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .channel-info img {
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 8px;
+    }
+    .channel-info h2 {
+      color: #ff0000;
+      margin: 0;
+      font-size: 18px;
+    }
+    .channel-info p {
+      font-size: 14px;
+      color: #aaa;
+      margin: 4px 0;
+    }
+    .video-list-title {
+      font-size: 16px;
+      color: #ff0000;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .video-item {
+      background: #282828;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .video-thumb img {
+      width: 100%;
+      display: block;
+    }
+    .video-details {
+      padding: 12px;
+    }
+    .video-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .video-views {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .allowed-block, .blocked-block {
+      background: #121212;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .allowed-block {
+      border-left: 4px solid #0f0;
+      color: #0f0;
+    }
+    .blocked-block {
+      border-left: 4px solid #f00;
+      color: #f66;
+    }
+    #error-message {
+      background: #440000;
+      color: #ffaaaa;
+      padding: 10px;
+      margin: 12px 0;
+      border-radius: 6px;
+      font-weight: bold;
+      display: none;
+    }
+    #logoutBtn {
+      background:#ff0000; 
+      color:#fff; 
+      border:none; 
+      padding:8px 12px; 
+      border-radius:4px; 
+      cursor:pointer;
+    }
+    #logoutBtn:hover {
+      background:#cc0000;
+    }
+    .save-btn {
+      background: #ff0000;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .save-btn:hover {
+      background: #cc0000;
+    }
+    input.country-input {
+      width: 100%;
+      padding: 6px;
+      margin-top: 5px;
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>YouTube CMS Panel</h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+
+  <main>
+    <div id="error-message"></div>
+    <div id="channel-info"></div>
+    <div class="video-list-title">Your Videos</div>
+    <div id="video-list"></div>
+  </main>
+
+  <script>
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("No token found. Please login again.");
+      window.location.href = "/";
+    }
+
+    const errorMessageEl = document.getElementById("error-message");
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem("access_token");
+      window.location.href = "/";
+    });
+
+    function fetchWithQuotaCheck(url, options = {}) {
+      return fetch(url, options)
+        .then(async res => {
+          if (!res.ok) {
+            let errorData;
+            try {
+              errorData = await res.json();
+            } catch {
+              throw new Error("Unknown API error");
+            }
+
+            if (errorData.error && errorData.error.errors) {
+              const quotaError = errorData.error.errors.find(e => e.reason === "quotaExceeded");
+              if (quotaError) {
+                errorMessageEl.style.display = "block";
+                errorMessageEl.textContent = "🚫 API Quota Exceeded! Please try again later.";
+                throw new Error("Quota Exceeded");
+              }
+            }
+
+            throw new Error(errorData.error.message || "API Error");
+          }
+          return res.json();
+        });
+    }
+
+    function fetchChannel() {
+      errorMessageEl.style.display = "none";
+      fetchWithQuotaCheck("https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&mine=true", {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      })
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          errorMessageEl.style.display = "block";
+          errorMessageEl.textContent = "No channel found.";
+          return;
+        }
+        const ch = data.items[0];
+        const html = `
+          <div class="channel-info">
+            <img src="${ch.snippet.thumbnails?.default?.url || ''}" alt="${ch.snippet.title}" />
+            <h2>${ch.snippet.title}</h2>
+            <p>Subscribers: ${ch.statistics.subscriberCount}</p>
+            <p>Total Views: ${ch.statistics.viewCount}</p>
+            <p>Videos: ${ch.statistics.videoCount}</p>
+          </div>
+        `;
+        document.getElementById("channel-info").innerHTML = html;
+
+        fetchVideos(ch.contentDetails.relatedPlaylists.uploads);
+      })
+      .catch(err => {
+        console.error(err);
+        errorMessageEl.style.display = "block";
+        errorMessageEl.textContent = "Error loading channel info.";
+      });
+    }
+
+    function fetchVideos(playlistId) {
+      errorMessageEl.style.display = "none";
+      fetchWithQuotaCheck(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=10`, {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      })
+      .then(data => {
+        if (!data.items || data.items.length === 0) {
+          document.getElementById("video-list").innerHTML = "<p>No videos found.</p>";
+          return;
+        }
+
+        const ids = data.items.map(item => item.snippet.resourceId.videoId).join(",");
+        return fetchWithQuotaCheck(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${ids}`, {
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        });
+      })
+      .then(details => {
+        if (!details || !details.items) {
+          document.getElementById("video-list").innerHTML = "<p>No video details found.</p>";
+          return;
+        }
+
+        let html = "";
+        details.items.forEach(video => {
+          const vid = video.id;
+
+          html += `
+            <div class="video-item" data-videoid="${vid}">
+              <div class="video-thumb">
+                <img src="${video.snippet.thumbnails?.medium?.url || ''}" alt="${video.snippet.title}">
+              </div>
+              <div class="video-details">
+                <div class="video-title">${video.snippet.title}</div>
+                <div class="video-views">${video.snippet.publishedAt.substr(0,10)} • ${video.statistics.viewCount || 0} views</div>
+                <div class="allowed-block" id="allowed-${vid}">
+                  <strong>Allowed:</strong> Loading...
+                </div>
+                <input type="text" placeholder="Add allowed countries comma-separated" class="country-input" id="input-allowed-${vid}">
+                <div class="blocked-block" id="blocked-${vid}">
+                  <strong>Blocked:</strong> Loading...
+                </div>
+                <input type="text" placeholder="Add blocked countries comma-separated" class="country-input" id="input-blocked-${vid}">
+                <button class="save-btn" onclick="saveRestriction('${vid}')">Save</button>
+              </div>
+            </div>
+          `;
+
+          // fetch restrictions for each video from MongoDB
+          fetch(`/api/restrictions/${vid}`)
+            .then(res => res.json())
+            .then(data => {
+              document.getElementById(`allowed-${vid}`).innerHTML =
+                `<strong>Allowed:</strong> ${data.allowed.length ? data.allowed.join(", ") : "None"}`;
+              document.getElementById(`blocked-${vid}`).innerHTML =
+                `<strong>Blocked:</strong> ${data.blocked.length ? data.blocked.join(", ") : "None"}`;
+            })
+            .catch(err => {
+              console.error(err);
+            });
+        });
+
+        document.getElementById("video-list").innerHTML = html;
+      })
+      .catch(err => {
+        console.error(err);
+        errorMessageEl.style.display = "block";
+        errorMessageEl.textContent = "Error loading videos.";
+      });
+    }
+
+    function saveRestriction(videoId) {
+      const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
+      const blockedInput = document.getElementById(`input-blocked-${videoId}`).value;
+
+      const allowedCountries = allowedInput ? allowedInput.split(",").map(s => s.trim().toUpperCase()) : [];
+      const blockedCountries = blockedInput ? blockedInput.split(",").map(s => s.trim().toUpperCase()) : [];
+
+      fetch(`/api/restrictions/${videoId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ allowedCountries, blockedCountries })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("Restrictions saved!");
+        document.getElementById(`allowed-${videoId}`).innerHTML =
+          `<strong>Allowed:</strong> ${data.allowedCountries.length ? data.allowedCountries.join(", ") : "None"}`;
+        document.getElementById(`blocked-${videoId}`).innerHTML =
+          `<strong>Blocked:</strong> ${data.blockedCountries.length ? data.blockedCountries.join(", ") : "None"}`;
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error saving restrictions.");
+      });
+    }
+
+    window.onload = fetchChannel;
+  </script>
+</body>
+</html>
