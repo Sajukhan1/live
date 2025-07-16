@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/database';
+import { connectToDatabase } from '../../../../lib/database'; // ✅ Relative path use করা হলো
 import { ObjectId } from 'mongodb';
 
 // GET: Fetch restrictions for a specific video
