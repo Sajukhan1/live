@@ -1,9 +1,86 @@
-import mongoose from 'mongoose';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video CMS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #f5f5f5;
+    }
+    .video-card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 5px 10px;
+      margin-top: 10px;
+    }
+    .country-input {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎥 Video Restriction CMS</h1>
+  <div id="video-list">Loading videos...</div>
 
-const VideoSchema = new mongoose.Schema({
-  title: String,
-  url: String,
-  restrictedCountries: [String], // ISO country codes
-});
+  <script>
+    // Load all videos
+    async function loadVideos() {
+      const res = await fetch('/api/restrictions');
+      const videos = await res.json();
 
-export default mongoose.models.Video || mongoose.model('Video', VideoSchema);
+      const container = document.getElementById('video-list');
+      container.innerHTML = '';
+
+      videos.forEach(video => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+
+        const countries = video.restrictedCountries.join(', ');
+
+        card.innerHTML = `
+          <h3>${video.title}</h3>
+          <p>🎬 URL: <a href="${video.url}" target="_blank">${video.url}</a></p>
+          <label for="rc-${video._id}">Restricted Countries (ISO codes, comma-separated):</label>
+          <input class="country-input" id="rc-${video._id}" type="text" value="${countries}" />
+          <br>
+          <button onclick="updateRestrictions('${video._id}')">Update</button>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // Update restrictedCountries
+    async function updateRestrictions(videoId) {
+      const input = document.getElementById('rc-' + videoId);
+      const countryList = input.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
+
+      const res = await fetch('/api/restrictions/' + videoId, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ restrictedCountries: countryList })
+      });
+
+      if (res.ok) {
+        alert('✅ Restrictions updated!');
+        loadVideos(); // reload
+      } else {
+        alert('❌ Update failed!');
+      }
+    }
+
+    // Load on page load
+    loadVideos();
+  </script>
+</body>
+</html>
