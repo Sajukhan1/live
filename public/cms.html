@@ -1,31 +1,130 @@
-function saveRestriction(videoId) {
-  const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
-  const blockedInput = document.getElementById(`input-blocked-${videoId}`).value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CMS - Manage Video Restrictions</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background: #f5f7fa;
+      color: #333;
+    }
 
-  const allowedCountries = allowedInput ? allowedInput.split(",").map(s => s.trim().toUpperCase()) : [];
-  const blockedCountries = blockedInput ? blockedInput.split(",").map(s => s.trim().toUpperCase()) : [];
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+    }
 
-  fetch(`/api/restrictions/${videoId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}` // ✅ This is required
-    },
-    body: JSON.stringify({ allowedCountries, blockedCountries })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Server error");
-    return res.json();
-  })
-  .then(data => {
-    alert("Restrictions saved!");
-    document.getElementById(`allowed-${videoId}`).innerHTML =
-      `<strong>Allowed:</strong> ${data.allowedCountries.length ? data.allowedCountries.join(", ") : "None"}`;
-    document.getElementById(`blocked-${videoId}`).innerHTML =
-      `<strong>Blocked:</strong> ${data.blockedCountries.length ? data.blockedCountries.join(", ") : "None"}`;
-  })
-  .catch(err => {
-    console.error(err);
-    alert("Error saving restrictions.");
-  });
-}
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 15px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #2ecc71;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #27ae60;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background: #ecf0f1;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Manage Video Restrictions</h2>
+
+  <div class="container">
+    <label for="input-allowed-123">Allowed Countries (comma separated):</label>
+    <input id="input-allowed-123" type="text" placeholder="e.g. US, CA, GB" />
+
+    <label for="input-blocked-123">Blocked Countries (comma separated):</label>
+    <input id="input-blocked-123" type="text" placeholder="e.g. CN, RU" />
+
+    <button onclick="saveRestriction('123')">Save Restrictions</button>
+
+    <div class="result">
+      <div id="allowed-123">Allowed: None</div>
+      <div id="blocked-123">Blocked: None</div>
+    </div>
+  </div>
+
+  <script>
+    const token = "your_token_here"; // ✅ Replace this with your actual token
+
+    function saveRestriction(videoId) {
+      const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
+      const blockedInput = document.getElementById(`input-blocked-${videoId}`).value;
+
+      const allowedCountries = allowedInput
+        ? allowedInput.split(",").map(s => s.trim().toUpperCase())
+        : [];
+
+      const blockedCountries = blockedInput
+        ? blockedInput.split(",").map(s => s.trim().toUpperCase())
+        : [];
+
+      fetch(`/api/restrictions/${videoId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // ✅ Required
+        },
+        body: JSON.stringify({ allowedCountries, blockedCountries })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Server error");
+          return res.json();
+        })
+        .then(data => {
+          alert("Restrictions saved!");
+          document.getElementById(`allowed-${videoId}`).innerHTML =
+            `Allowed: ${data.allowedCountries.length ? data.allowedCountries.join(", ") : "None"}`;
+          document.getElementById(`blocked-${videoId}`).innerHTML =
+            `Blocked: ${data.blockedCountries.length ? data.blockedCountries.join(", ") : "None"}`;
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Error saving restrictions.");
+        });
+    }
+  </script>
+</body>
+</html>
