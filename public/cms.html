@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>CMS - Manage Video Restrictions</title>
+  <title>CMS - Video Restrictions</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,19 +16,22 @@
       color: #2c3e50;
     }
 
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
+    .video-card {
       background: #fff;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+    }
+
+    .video-card h3 {
+      margin-top: 0;
     }
 
     label {
       font-weight: bold;
-      margin-top: 15px;
       display: block;
+      margin-top: 10px;
     }
 
     input {
@@ -38,20 +41,18 @@
       margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 6px;
-      box-sizing: border-box;
       font-size: 14px;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
+      padding: 10px 20px;
       background-color: #2ecc71;
       color: white;
-      font-size: 16px;
+      font-size: 15px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      margin-top: 10px;
     }
 
     button:hover {
@@ -59,35 +60,69 @@
     }
 
     .result {
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 10px;
       background: #ecf0f1;
       border-radius: 6px;
-      font-size: 15px;
     }
   </style>
 </head>
 <body>
 
   <h2>Manage Video Restrictions</h2>
-
-  <div class="container">
-    <label for="input-allowed-123">Allowed Countries (comma separated):</label>
-    <input id="input-allowed-123" type="text" placeholder="e.g. US, CA, GB" />
-
-    <label for="input-blocked-123">Blocked Countries (comma separated):</label>
-    <input id="input-blocked-123" type="text" placeholder="e.g. CN, RU" />
-
-    <button onclick="saveRestriction('123')">Save Restrictions</button>
-
-    <div class="result">
-      <div id="allowed-123">Allowed: None</div>
-      <div id="blocked-123">Blocked: None</div>
-    </div>
-  </div>
+  <div id="video-list">Loading videos...</div>
 
   <script>
-    const token = "your_token_here"; // 🔐 Replace with your actual token
+    const token = "your_token_here"; // Replace with real token
+
+    async function fetchVideos() {
+      try {
+        const res = await fetch("/api/videos");
+        const videos = await res.json();
+        const container = document.getElementById("video-list");
+
+        container.innerHTML = "";
+
+        for (const video of videos) {
+          const form = document.createElement("div");
+          form.className = "video-card";
+          form.innerHTML = `
+            <h3>${video.title || "Untitled Video"}</h3>
+
+            <label>Allowed Countries (comma separated):</label>
+            <input id="input-allowed-${video._id}" placeholder="e.g. US, CA, GB" />
+
+            <label>Blocked Countries (comma separated):</label>
+            <input id="input-blocked-${video._id}" placeholder="e.g. CN, RU" />
+
+            <button onclick="saveRestriction('${video._id}')">Save Restrictions</button>
+
+            <div class="result">
+              <div id="allowed-${video._id}">Allowed: Loading...</div>
+              <div id="blocked-${video._id}">Blocked: Loading...</div>
+            </div>
+          `;
+
+          container.appendChild(form);
+
+          // Fetch current restriction for each video
+          const restrictionRes = await fetch(`/api/restrictions/${video._id}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
+
+          if (restrictionRes.ok) {
+            const restriction = await restrictionRes.json();
+            document.getElementById(`allowed-${video._id}`).innerText =
+              `Allowed: ${restriction.allowedCountries.length ? restriction.allowedCountries.join(", ") : "None"}`;
+            document.getElementById(`blocked-${video._id}`).innerText =
+              `Blocked: ${restriction.blockedCountries.length ? restriction.blockedCountries.join(", ") : "None"}`;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById("video-list").innerText = "Failed to load videos.";
+      }
+    }
 
     function saveRestriction(videoId) {
       const allowedInput = document.getElementById(`input-allowed-${videoId}`).value;
@@ -115,9 +150,9 @@
         })
         .then(data => {
           alert("Restrictions saved!");
-          document.getElementById(`allowed-${videoId}`).innerHTML =
+          document.getElementById(`allowed-${videoId}`).innerText =
             `Allowed: ${data.allowedCountries.length ? data.allowedCountries.join(", ") : "None"}`;
-          document.getElementById(`blocked-${videoId}`).innerHTML =
+          document.getElementById(`blocked-${videoId}`).innerText =
             `Blocked: ${data.blockedCountries.length ? data.blockedCountries.join(", ") : "None"}`;
         })
         .catch(err => {
@@ -125,6 +160,9 @@
           alert("Error saving restrictions.");
         });
     }
+
+    fetchVideos();
   </script>
+
 </body>
 </html>
