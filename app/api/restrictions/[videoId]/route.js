@@ -1,29 +1,14 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/app/database';
-import Video from '@/app/api/models/video';
+import dbConnect from '@/lib/database';
+import Video from '../models/video';
 
-export async function PUT(req, { params }) {
+export async function GET() {
+  await dbConnect();
+
   try {
-    await connectDB();
-    const { videoId } = params;
-    const body = await req.json();
-
-    const updated = await Video.findByIdAndUpdate(videoId, {
-      countryRestrictions: body.countryRestrictions || []
-    }, { new: true });
-
-    return NextResponse.json(updated);
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
-
-export async function GET(_, { params }) {
-  try {
-    await connectDB();
-    const video = await Video.findById(params.videoId);
-    return NextResponse.json(video);
-  } catch (err) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const videos = await Video.find();
+    return NextResponse.json(videos);
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
   }
 }
