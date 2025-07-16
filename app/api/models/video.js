@@ -1,16 +1,9 @@
 import mongoose from 'mongoose';
 
 const VideoSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  countryRestrictions: {
-    type: [String], // Example: ['IN', 'US']
-    default: [],
-  },
-}, {
-  timestamps: true,
+  title: String,
+  url: String,
+  restrictedCountries: [String], // ISO country codes
 });
 
 export default mongoose.models.Video || mongoose.model('Video', VideoSchema);
