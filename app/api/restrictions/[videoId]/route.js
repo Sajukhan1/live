@@ -1,8 +1,6 @@
-// app/api/restrictions/[videoId]/route.js
-
 import { NextResponse } from 'next/server';
-import dbConnect from '../../../../lib/database';
-import Video from '../../../../models/video';
+import dbConnect from '@/lib/database';
+import Video from '@/models/video';
 
 export async function PUT(req, { params }) {
   await dbConnect();
@@ -12,12 +10,14 @@ export async function PUT(req, { params }) {
   try {
     const updated = await Video.findByIdAndUpdate(
       videoId,
-      { countryRestrictions: data.countryRestrictions || [] },
+      {
+        restrictedCountries: data.restrictedCountries || [],
+      },
       { new: true }
     );
 
     return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json({ error: 'Update failed', message: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Update failed', details: error.message }, { status: 500 });
   }
 }
