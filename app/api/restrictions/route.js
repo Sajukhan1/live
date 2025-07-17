@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/database';
-import Video from '@/models/video';
+import dbConnect from '../../../lib/database';
+import Video from '../../../models/video';
 
 // POST: Create a new video
 export async function POST(request) {
