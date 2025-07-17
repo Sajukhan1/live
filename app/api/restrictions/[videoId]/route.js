@@ -1,26 +1,17 @@
-import mongoose from 'mongoose';
+import clientPromise from "@/lib/database";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+export async function GET(req, { params }) {
+  try {
+    const client = await clientPromise;
+    const db = client.db("newdata"); // database name
+    const collection = db.collection("restrictions");
 
-if (!MONGODB_URI) {
-  throw new Error('❌ Please define MONGODB_URI in your environment variables');
-}
+    const videoId = params.videoId;
+    const doc = await collection.findOne({ videoId });
 
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-export default async function dbConnect() {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
+    return Response.json({ restrictions: doc?.countries || [] });
+  } catch (error) {
+    console.error("API Error:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
-
-  cached.conn = await cached.promise;
-  return cached.conn;
 }
