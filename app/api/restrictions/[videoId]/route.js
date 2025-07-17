@@ -1,27 +1,26 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/database';
-import Video from '@/models/video';
+import mongoose from 'mongoose';
 
-export async function PUT(req, { params }) {
-  await dbConnect();
-  const { videoId } = params;
-  const data = await req.json();
+const MONGODB_URI = process.env.MONGODB_URI;
 
-  try {
-    const updated = await Video.findByIdAndUpdate(
-      videoId,
-      {
-        restrictedCountries: data.restrictedCountries || [],
-      },
-      { new: true }
-    );
+if (!MONGODB_URI) {
+  throw new Error('❌ Please define MONGODB_URI in your environment variables');
+}
 
-    if (!updated) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
-    }
+let cached = global.mongoose;
 
-    return NextResponse.json(updated);
-  } catch (error) {
-    return NextResponse.json({ error: 'Update failed', details: error.message }, { status: 500 });
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+export default async function dbConnect() {
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    });
   }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
