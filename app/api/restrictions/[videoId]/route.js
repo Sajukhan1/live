@@ -1,17 +1,39 @@
-import clientPromise from "@/lib/database";
+// app/api/restrictions/[videoId]/route.js
 
-export async function GET(req, { params }) {
+import { MongoClient } from "mongodb";
+
+const uri = "mongodb+srv://newdata:anaz7U7SGJ4of3Jt@newdata.rieuzq2.mongodb.net/?retryWrites=true&w=majority&appName=newdata";
+
+const client = new MongoClient(uri);
+const dbName = "videoCMS"; // আপনার database নাম
+const collectionName = "restrictions"; // আপনার collection নাম
+
+export async function GET(request, { params }) {
+  const { videoId } = params;
+
   try {
-    const client = await clientPromise;
-    const db = client.db("newdata"); // database name
-    const collection = db.collection("restrictions");
+    await client.connect();
+    const db = client.db(dbName);
+    const collection = db.collection(collectionName);
 
-    const videoId = params.videoId;
-    const doc = await collection.findOne({ videoId });
+    const restriction = await collection.findOne({ videoId });
 
-    return Response.json({ restrictions: doc?.countries || [] });
+    if (!restriction) {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify(restriction), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
   } catch (error) {
-    console.error("API Error:", error);
-    return new Response("Internal Server Error", { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
