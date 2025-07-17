@@ -1,36 +1,28 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '../../../lib/database';
-import Video from '../../../models/video';
+import dbConnect from '@/lib/database';
+import Video from '@/models/video'; // absolute import
 
-// POST: Create a new video
-export async function POST(request) {
+export async function PUT(req) {
   await dbConnect();
+  const { searchParams } = new URL(req.url);
+  const videoId = searchParams.get('videoId');
+  const data = await req.json();
 
-  try {
-    const body = await request.json();
-
-    const newVideo = new Video({
-      title: body.title,
-      url: body.url,
-      restrictedCountries: body.restrictedCountries || [],
-    });
-
-    const saved = await newVideo.save();
-    return NextResponse.json(saved, { status: 201 });
-
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to insert video', details: err.message }, { status: 500 });
+  if (!videoId) {
+    return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
   }
-}
-
-// GET: Fetch all videos
-export async function GET() {
-  await dbConnect();
 
   try {
-    const videos = await Video.find();
-    return NextResponse.json(videos);
+    const updated = await Video.findByIdAndUpdate(
+      videoId,
+      {
+        restrictedCountries: data.restrictedCountries || [],
+      },
+      { new: true }
+    );
+
+    return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
+    return NextResponse.json({ error: 'Update failed', details: error.message }, { status: 500 });
   }
 }
