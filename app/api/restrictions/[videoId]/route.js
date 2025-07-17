@@ -10,9 +10,16 @@ export async function PUT(req, { params }) {
   try {
     const updated = await Video.findByIdAndUpdate(
       videoId,
-      { restrictedCountries: data.restrictedCountries || [] },
+      {
+        restrictedCountries: data.restrictedCountries || [],
+      },
       { new: true }
     );
+
+    if (!updated) {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     return NextResponse.json({ error: 'Update failed', details: error.message }, { status: 500 });
